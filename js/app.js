@@ -22,6 +22,7 @@
   let lastRound = null;   // لإعادة نفس الجولة من شاشة النتائج
   let lastResult = null;  // نتيجة آخر جولة: للشهادة وتدريب الأخطاء
   let newAvatar = AVATARS[0];
+  let newLook = World.CUTE;
   let parentOK = false;   // فُتحت لوحة ولي الأمر بالرمز في هذه الزيارة
   let parentTab = 'kids';
   let parentKid = null;
@@ -42,6 +43,7 @@
 
   function render(html, keepScroll) {
     const tabs = !round && TAB_SCREENS.has(nav.cur) && !!Store.current();
+    World.paint();
     document.body.classList.toggle('bgrest', !!round);
     document.body.classList.toggle('tabs', tabs);
     app.innerHTML = html + (tabs ? tabBar() : '');
@@ -144,7 +146,7 @@
       const list = Store.state.profiles;
       render(`<section class="screen">
         <div class="hero-title">
-          <div class="logo">🦸✏️📚</div>
+          <div class="logo">${World.logo('🦸✏️📚')}</div>
           <h1>أبطال الإملاء</h1>
           <p>Spelling Heroes — مغامرة الكلمات بالعربية والإنجليزية</p>
         </div>
@@ -159,7 +161,7 @@
 
     newProfile(edit) {
       const p = edit ? Store.current() : null;
-      if (p) newAvatar = p.avatar;
+      if (p) { newAvatar = p.avatar; newLook = World.lookOf(p); }
       render(`<section class="screen">
         <header class="topbar">
           <button class="chip" data-act="go" data-arg="${p ? 'camp' : 'profiles'}">→ رجوع</button>
@@ -170,6 +172,7 @@
           <input id="pname" type="text" maxlength="20" autocomplete="off" value="${p ? esc(p.name) : ''}" placeholder="اكتب اسمك هنا">
           <div class="label">اختر شخصيتك</div>
           <div class="avatar-grid">${AVATARS.map(a => `<button class="avatar-btn ${a === newAvatar ? 'selected' : ''}" data-act="pickAvatar" data-arg="${a}">${a}</button>`).join('')}</div>
+          ${World.lookPicker(newLook)}
           <button class="btn pink wide" data-act="${p ? 'saveProfile' : 'createProfile'}">${p ? '✅ حفظ' : '🚀 هيا نبدأ'}</button>
         </div>
       </section>`);
@@ -208,6 +211,7 @@
           <button class="chip" data-act="toggleMute" aria-label="الصوت">${Store.state.muted ? '🔇' : '🔊'}</button>
         </header>
 
+        ${World.greeting(st.streak)}
         <div class="hello">
           <button class="big-avatar" data-act="editProfile" aria-label="تعديل">${p.avatar}<i>✏️</i></button>
           <div>
@@ -429,6 +433,7 @@
         ${race ? `<div class="timebar"><i id="timebar"></i><span id="timeText">${CONFIG.raceSeconds}</span></div>`
           : `<div class="steps" id="steps">${'<i></i>'.repeat(Math.min(r.total, 30))}</div>`}
         <div class="prompt">
+          ${World.buddy()}
           <div class="stamp" id="stamp"></div>
           <div class="prompt-top"><span class="pic" id="pic"></span><span class="meaning" id="meaning"></span></div>
           <div class="wordbox" id="wordBox" data-act="peek"></div>
@@ -451,7 +456,7 @@
       render(`<section class="screen">
         <div class="card result-card" id="cert">
           <div class="cert-only cert-head">🦸 شهادة بطل الإملاء</div>
-          <div class="big-emoji">${titleEmoji}</div>
+          <div class="big-emoji">${World.resultFace(titleEmoji, sum.mode === 'race' || pct >= 60)}</div>
           <h2>${esc(p.name)} ${p.avatar}</h2>
           <p class="cert-title">${sum.title}</p>
           <div class="stars">${sum.mode === 'race' ? '' : '⭐'.repeat(stars) + '☆'.repeat(3 - stars)}</div>
@@ -992,6 +997,7 @@
     box.innerHTML = `<span>${wordHTML(q.word)}</span>`;
     if (ok) {
       Sound.play('right');
+      World.react(true);
       stamp(['ممتاز!', 'رائع!', 'أحسنت!', 'Great!'][r.right % 4], false);
       $('feedback').innerHTML = q.word.m
         ? `<div class="trbox"><span dir="${wdir(q.word)}">${q.word.e || ''} ${wordHTML(q.word)}</span><b>=</b><span dir="auto">${esc(q.word.m)}</span></div>`
@@ -1000,6 +1006,7 @@
       return;
     }
     Sound.play('wrong');
+    World.react(false);
     stamp('حاول!', true);
     const tip = q.word.tip && r.mode !== 'race' ? `<small class="fb-tip">💡 ${esc(q.word.tip)}</small>` : '';
     $('feedback').innerHTML = `<span class="bad">الصحيح: <b dir="${wdir(q.word)}">${wordHTML(q.word)}</b></span>${q.stage === 'write' ? diffTiles(given, q.word) : ''}${tip}`;
@@ -1086,7 +1093,7 @@
     modalYes() { closeModal(true); },
     modalNo() { closeModal(false); },
     go(arg, el) { go(arg, el && el.dataset.arg2); },
-    newProfile() { newAvatar = AVATARS[0]; go('newProfile'); },
+    newProfile() { newAvatar = AVATARS[0]; newLook = World.CUTE; go('newProfile'); },
     editProfile() { go('newProfile', '1'); },
     pickAvatar(a, el) {
       newAvatar = a;
@@ -1094,10 +1101,17 @@
       el.classList.add('selected');
       Sound.play('tap');
     },
+    pickLook(look, el) {
+      newLook = look;
+      el.parentElement.querySelectorAll('.look-opt').forEach(b => b.classList.toggle('selected', b === el));
+      World.preview(look);
+    },
     createProfile() {
       const name = $('pname').value.trim();
       if (!name) { toast('اكتب اسمك أولاً 😊'); $('pname').focus(); return; }
       Store.addProfile(name, newAvatar);
+      Store.current().look = newLook;
+      Store.save();
       Sound.play('open');
       go('start');
     },
@@ -1105,7 +1119,7 @@
       const name = $('pname').value.trim();
       if (!name) { toast('اكتب اسمك أولاً 😊'); return; }
       const p = Store.current();
-      p.name = name; p.avatar = newAvatar;
+      p.name = name; p.avatar = newAvatar; p.look = newLook;
       Store.save();
       go('camp');
     },

@@ -1,16 +1,18 @@
 // يحفظ ملفات اللعبة على الجهاز لتعمل بدون إنترنت
 // غيّر رقم الإصدار عند تعديل أي ملف حتى يحدَّث الكاش
-const CACHE = 'spelling-hero-v8';
+const CACHE = 'spelling-hero-v9';
 const FILES = [
   './',
   'index.html',
   'manifest.webmanifest',
   'css/style.css',
+  'css/world.css',
   'fonts/baloo-bhaijaan-2-arabic.woff2',
   'fonts/baloo-bhaijaan-2-latin.woff2',
   'js/background.js',
   'js/data.js',
   'js/store.js',
+  'js/world.js',
   'js/sound.js',
   'js/speech.js',
   'js/engine.js',
