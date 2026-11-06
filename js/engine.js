@@ -16,14 +16,16 @@ const Engine = (() => {
   const letters = t => Array.from(strip(t).replace(/\s+/g, ''));
 
   function normalize(s, lang) {
-    s = String(s).trim().replace(/\s+/g, ' ');
+    s = String(s).normalize('NFC').trim().replace(/\s+/g, ' ');
     if (lang === 'ar') {
       if (S().ignoreTashkeel) s = strip(s);
       if (S().lenientHamza) s = s.replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي');
     } else if (!S().strictCase) s = s.toLowerCase();
     return s;
   }
-  const same = (user, word) => normalize(user, word.lang) === normalize(word.t, word.lang);
+  // الكلمة كما تُعرض وتُنطق: مشكولة إن توفر تشكيلها
+  const voweled = w => w.v || w.t;
+  const same = (user, word) => normalize(user, word.lang) === normalize(voweled(word), word.lang);
 
   // هل تكفي لوحة المفاتيح لكتابة هذه الكلمة؟ وإلا فتبقى في ترتيب الحروف
   const KEYS_AR = /^[ء-يًٌٍَُِّْ\s]+$/;
@@ -33,8 +35,8 @@ const Engine = (() => {
   // محاذاة ما كتبه الطفل مع الكلمة الصحيحة: أين أخطأ بالضبط؟
   function align(user, word) {
     const a = Array.from(normalize(user, word.lang));
-    const b = Array.from(normalize(word.t, word.lang));
-    const shown = Array.from(word.lang === 'ar' && S().ignoreTashkeel ? strip(word.t) : word.t.trim().replace(/\s+/g, ' '));
+    const b = Array.from(normalize(voweled(word), word.lang));
+    const shown = Array.from(word.lang === 'ar' && S().ignoreTashkeel ? strip(word.t) : String(voweled(word)).normalize('NFC').trim().replace(/\s+/g, ' '));
     const d = Array.from({ length: a.length + 1 }, (_, i) => [i].concat(Array(b.length).fill(0)));
     for (let j = 1; j <= b.length; j++) d[0][j] = j;
     for (let i = 1; i <= a.length; i++) {
@@ -55,8 +57,8 @@ const Engine = (() => {
 
   // ───── الكلمات ─────
   const parse = (str, r, src, lang) => {
-    const [t, e, m] = str.split('|');
-    return { t, e: e || '', m: m || '', lang, src, tip: r.tip, focus: r.focus || '', region: r.id };
+    const [t, e, m, v] = str.split('|');
+    return { t, v: v || '', e: e || '', m: m || '', lang, src, tip: r.tip, focus: r.focus || '', region: r.id };
   };
   const world = id => WORLDS.find(w => w.id === id);
   const regionWords = (w, r) => r.words.map(x => parse(x, r, w, w === 'ar' ? 'ar' : 'en'));
@@ -64,7 +66,7 @@ const Engine = (() => {
   // فهرس الكلمات: يترجم كلمات الوضع الحر ويعطيها رمزها إن وُجدت في الخطط أو القاموس
   const INDEX = {};
   WORLDS.forEach(w => w.regions.forEach(r => regionWords(w.id, r).forEach(x => {
-    INDEX[strip(x.t).toLowerCase()] = { e: x.e, m: x.m };
+    INDEX[strip(x.t).toLowerCase()] = { e: x.e, m: x.m, v: x.v };
     if (!x.m.includes(' ')) { const k = x.m.toLowerCase(); if (!INDEX[k]) INDEX[k] = { e: x.e, m: x.t }; }
   })));
   Object.keys(DICT).forEach(k => {
@@ -76,7 +78,9 @@ const Engine = (() => {
 
   const listWord = (l, x) => {
     const found = lookup(x.t);
-    return { t: x.t, e: x.e || (found && found.e) || '', m: x.h || (found && found.m) || '', lang: x.lang || detectLang(x.t),
+    // كلمة الوضع الحر تأخذ تشكيل الخطة إن وُجدت فيها، إلا إذا شكّلها من أدخلها
+    const v = found && found.v && strip(x.t) === x.t ? found.v : '';
+    return { t: x.t, v, e: x.e || (found && found.e) || '', m: x.h || (found && found.m) || '', lang: x.lang || detectLang(x.t),
       src: 'list:' + l.id, tip: '', focus: '', region: l.id };
   };
   const listWords = l => l.words.map(x => listWord(l, x));
@@ -302,7 +306,7 @@ const Engine = (() => {
   };
 
   return {
-    shuffle, any, detectLang, strip, letters, normalize, same, keyable, align,
+    shuffle, any, detectLang, strip, voweled, letters, normalize, same, keyable, align,
     world, regionWords, lookup, listWords, chunks, findWord,
     state, fact, peekBox, mastery, current, stageFor, record, pick, fillData, tileData, progress,
     today, streak, addAnswer, clearMistake, reviewWords, STATIONS, stationDone, nextStation, chestReady, openChest,

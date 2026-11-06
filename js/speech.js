@@ -114,7 +114,7 @@ const Speech = (() => {
   function say(word) {
     if (!Store.state.settings.speak) return;
     if (recSet[word.t]) { playRec(word.t); return; }
-    tts(word.t, word.lang);
+    tts(word.v || word.t, word.lang);
   }
   // هل يستطيع الطفل سماع هذه الكلمة؟ إن لم يستطع فلا تُملى سماعاً فقط
   function can(word) {

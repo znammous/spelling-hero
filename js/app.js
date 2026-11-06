@@ -8,6 +8,9 @@
   const S = () => Store.state.settings;
   const wdir = w => (w.lang === 'ar' ? 'rtl' : 'ltr');
   const allItems = () => ITEMS.concat(RARE_ITEMS);
+  // الكلمة بتشكيلها: الحروف بلون النص والحركات بلون أفتح منه
+  const lightMarks = s => esc(s).replace(/[\u064B-\u0652\u0670]+/g, m => `<span class="hk">${m}</span>`);
+  const wordHTML = w => lightMarks(Engine.voweled(w));
   const kidColor = p => KID_COLORS[Store.state.profiles.indexOf(p) % KID_COLORS.length];
 
   let round = null;       // الجولة الجارية
@@ -449,7 +452,7 @@
         </div>
         ${sum.mistakes.length ? `<div class="card no-print"><h2>📌 كلمات تحتاج تدريباً</h2>
           ${sum.mistakes.map(m => `<div class="mi"><button class="mini" data-act="sayText" data-arg="${esc(m.word.t)}" data-lang="${m.word.lang}">🔊</button>
-            <div class="mi-body"><b dir="${wdir(m.word)}">${esc(m.word.t)}</b>${m.word.m ? `<small> ${esc(m.word.m)}</small>` : ''}
+            <div class="mi-body"><b dir="${wdir(m.word)}">${wordHTML(m.word)}</b>${m.word.m ? `<small> ${esc(m.word.m)}</small>` : ''}
             ${m.given ? diffTiles(m.given, m.word) : ''}</div></div>`).join('')}
         </div>` : ''}
         ${sum.chestReady ? '<button class="btn gold wide no-print" data-act="openChest">🧰 افتح كنز اليوم!</button>' : ''}
@@ -485,7 +488,7 @@
   function wordTile(p, x, i, rid) {
     return `<div class="wtile">
       <span class="wi">${x.e}</span>
-      <div class="wt" dir="${wdir(x)}">${esc(x.t)}</div>
+      <div class="wt" dir="${wdir(x)}">${wordHTML(x)}</div>
       <small>${esc(x.m)}</small>
       ${dots(Engine.peekBox(p, x))}
       <div class="wbtns"><button class="wbtn" data-act="sayWord" data-arg="${i}" data-region="${rid}">🔊</button>
@@ -496,7 +499,7 @@
     if (!l.words.length) return '<p class="muted center">لا توجد كلمات بعد. أضف كلمة لتبدأ 👆</p>';
     return Engine.listWords(l).map((w, i) => `<div class="witem">
       <span class="idx">${i + 1}</span>
-      <div class="txt" dir="${wdir(w)}">${w.e ? `${w.e} ` : ''}${esc(w.t)}${w.m ? `<small dir="auto">📖 ${esc(w.m)}</small>` : ''}</div>
+      <div class="txt" dir="${wdir(w)}">${w.e ? `${w.e} ` : ''}${wordHTML(w)}${w.m ? `<small dir="auto">📖 ${esc(w.m)}</small>` : ''}</div>
       <span class="tag">${w.lang === 'ar' ? 'عربي' : 'EN'}</span>
       <button class="wbtn" data-act="sayIdx" data-arg="${i}" data-list="${l.id}">🔊</button>
       <button class="wbtn rec ${Speech.isRecording(w.t) ? 'on' : ''} ${Speech.hasRec(w.t) ? 'has' : ''}" data-act="recWord" data-arg="${esc(w.t)}">${Speech.isRecording(w.t) ? '⏹️' : '🎤'}</button>
@@ -575,7 +578,7 @@
         }).join('')}
       </div>
       <div class="card"><h2>🎯 كلمات تحتاج تدريباً</h2>
-        ${hard.length ? `<div class="chips">${hard.map(w => `<span class="w-chip" dir="${wdir(w)}">${esc(w.t)}</span>`).join('')}</div>` : '<p class="muted">لا توجد كلمات صعبة حتى الآن 👏</p>'}
+        ${hard.length ? `<div class="chips">${hard.map(w => `<span class="w-chip" dir="${wdir(w)}">${wordHTML(w)}</span>`).join('')}</div>` : '<p class="muted">لا توجد كلمات صعبة حتى الآن 👏</p>'}
       </div>
       <button class="btn red wide" data-act="deleteKid" data-arg="${k.id}">🗑️ حذف ملف ${esc(k.name)}</button>`;
   }
@@ -700,7 +703,7 @@
   const HARAKAT_KEYS = ['َ', 'ُ', 'ِ', 'ّ', 'ْ', 'ً', 'ٌ', 'ٍ'];
   const keyBtn = (k, label = k, cls = '') => `<button class="k ${cls}" data-key="${esc(k)}">${label}</button>`;
   function keyboard(word) {
-    const strictT = word.lang === 'ar' && !S().ignoreTashkeel && Engine.strip(word.t) !== word.t;
+    const strictT = word.lang === 'ar' && !S().ignoreTashkeel && Engine.strip(Engine.voweled(word)) !== Engine.voweled(word);
     const shift = word.lang === 'en' && S().strictCase;
     const caps = round && round.q && round.q.caps;
     const rows = KB[word.lang].map(r => `<div class="k-row">${r.map(k => keyBtn(k, caps ? k.toUpperCase() : k)).join('')}</div>`);
@@ -796,7 +799,9 @@
     $('answer').className = 'answer';
 
     if (stage === 'fill') {
-      box.innerHTML = q.ls.map((c, i) => (i === q.at ? '<b class="blank">؟</b>' : esc(c))).join('');
+      // كل حرف مع حركته، والحرف الناقص بلا حركة حتى لا يبقى لها مكان معلّق
+      const clusters = Engine.voweled(word).replace(/\s+/g, '').match(/[^\u064B-\u0652\u0670\u0640][\u064B-\u0652\u0670\u0640]*/g);
+      box.innerHTML = `<span>${clusters.map((c, i) => (i === q.at ? '<b class="blank">؟</b>' : lightMarks(c))).join('')}</span>`;
       $('answer').hidden = true;
       $('pad').innerHTML = `<div class="choices">${q.choices.map(c => `<button class="choice" data-choice="${esc(c)}">${esc(c)}</button>`).join('')}</div>`;
       $('flashFill').style.width = '0%';
@@ -820,7 +825,7 @@
     const fill = $('flashFill');
     clearInterval(round.flashTimer);
     if (q.flash === 0) { hideWord(q); return; }
-    box.textContent = q.word.t;
+    box.innerHTML = `<span>${wordHTML(q.word)}</span>`;
     if (q.flash === -1) { fill.style.width = '100%'; return; }
     const total = q.flash * 1000;
     const start = Date.now();
@@ -973,20 +978,20 @@
 
     const box = $('wordBox');
     box.classList.remove('hidden-word');
-    box.textContent = q.word.t;
+    box.innerHTML = `<span>${wordHTML(q.word)}</span>`;
     if (ok) {
       Sound.play('right');
       stamp(['ممتاز!', 'رائع!', 'أحسنت!', 'Great!'][r.right % 4], false);
       $('feedback').innerHTML = q.word.m
-        ? `<div class="trbox"><span dir="${wdir(q.word)}">${q.word.e || ''} ${esc(q.word.t)}</span><b>=</b><span dir="auto">${esc(q.word.m)}</span></div>`
-        : `<span class="good">✅ ${esc(q.word.t)}</span>`;
+        ? `<div class="trbox"><span dir="${wdir(q.word)}">${q.word.e || ''} ${wordHTML(q.word)}</span><b>=</b><span dir="auto">${esc(q.word.m)}</span></div>`
+        : `<span class="good">✅ ${wordHTML(q.word)}</span>`;
       r.timeout = setTimeout(afterAnswer, r.mode === 'race' ? 500 : q.word.m ? 1300 : 800);
       return;
     }
     Sound.play('wrong');
     stamp('حاول!', true);
     const tip = q.word.tip && r.mode !== 'race' ? `<small class="fb-tip">💡 ${esc(q.word.tip)}</small>` : '';
-    $('feedback').innerHTML = `<span class="bad">الصحيح: <b dir="${wdir(q.word)}">${esc(q.word.t)}</b></span>${q.stage === 'write' ? diffTiles(given, q.word) : ''}${tip}`;
+    $('feedback').innerHTML = `<span class="bad">الصحيح: <b dir="${wdir(q.word)}">${wordHTML(q.word)}</b></span>${q.stage === 'write' ? diffTiles(given, q.word) : ''}${tip}`;
     if (q.stage === 'write' && r.mode !== 'race') {
       // خطوة التصحيح: يكتب الكلمة الصحيحة وهي أمامه قبل أن ينتقل
       q.copy = true;
@@ -1172,7 +1177,7 @@
       q.helped = true;   // نظرة واحدة تعني أن الإجابة لا تُحسب إتقاناً
       const box = $('wordBox');
       box.classList.remove('hidden-word');
-      box.textContent = q.word.t;
+      box.innerHTML = `<span>${wordHTML(q.word)}</span>`;
       clearTimeout(r.peekT);
       r.peekT = setTimeout(() => {
         if (round && round.q === q && !q.copy && !r.locked) {
