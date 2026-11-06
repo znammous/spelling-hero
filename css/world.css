@@ -44,6 +44,8 @@ html[data-theme="cute"] {
 [data-theme="cute"] .tab { color: var(--muted); }
 [data-theme="cute"] .tab.on { background: var(--primary); color: #fff; box-shadow: 0 3px 0 var(--primary-dark); }
 [data-theme="cute"] .region.locked { background: #f1e6ec; box-shadow: 0 6px 0 #dcc8d4; }
+[data-theme="cute"] .btn.blue, [data-theme="cute"] .big-btn.blue { background: #ffc2d9; color: var(--deep-dark); box-shadow: 0 6px 0 #f097bb; }
+[data-theme="cute"] .btn.blue:active:not(:disabled), [data-theme="cute"] .big-btn.blue:active:not(:disabled) { box-shadow: 0 2px 0 #f097bb; }
 [data-theme="cute"] .modal-bg { background: rgba(120, 60, 110, .55); }
 
 /* الجولة */
