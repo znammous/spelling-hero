@@ -1,4 +1,4 @@
-// عالم حروفة: المظهر اللطيف والأرنبة «حروفة». لكل بطل عالمه (p.look)، والافتراضي عالم حروفة.
+// عالم أرنوبة: المظهر اللطيف والأرنبة «أرنوبة». لكل بطل عالمه (p.look)، والافتراضي عالم أرنوبة.
 // لا تتغير الكلمات ولا المعرّفات، فيبقى التقدّم المحفوظ كما هو؛ تتغير الأسماء والرموز المعروضة فقط.
 const World = (() => {
   const CUTE = 'cute', CLASSIC = 'classic';
@@ -39,11 +39,11 @@ const World = (() => {
   });
   dressById(WORLDS, { ar: { name: 'بستان الضاد' }, en: { name: 'بستان الأبجدية' } });
   dressById(ITEMS, {
-    pencil: { name: 'قلم حروفة' },
-    cape: { emoji: '🧣', name: 'وشاح حروفة' },
+    pencil: { name: 'قلم أرنوبة' },
+    cape: { emoji: '🧣', name: 'وشاح أرنوبة' },
     shield: { emoji: '☂️', name: 'مظلة الحروف' },
     rocket: { emoji: '🎈', name: 'منطاد السرعة' },
-    castle: { emoji: '🏡', name: 'بيت حروفة' },
+    castle: { emoji: '🏡', name: 'بيت أرنوبة' },
   });
   [
     { emoji: '🌱', name: 'برعم الحروف' },
@@ -56,7 +56,7 @@ const World = (() => {
     { emoji: '👑', name: 'أسطورة الإملاء' },
   ].forEach((r, i) => dress(RANKS[i], r));
 
-  // ───── الأرنبة حروفة: رسم أصلي يعمل بدون إنترنت ─────
+  // ───── الأرنبة أرنوبة: رسم أصلي يعمل بدون إنترنت ─────
   const EYES = {
     happy: '<circle cx="46" cy="76" r="6.5" fill="#4a2b45"/><circle cx="74" cy="76" r="6.5" fill="#4a2b45"/><circle cx="48.2" cy="73.6" r="2.3" fill="#fff"/><circle cx="76.2" cy="73.6" r="2.3" fill="#fff"/>',
     cheer: '<path d="M39 78q7-10 14 0M67 78q7-10 14 0" fill="none" stroke="#4a2b45" stroke-width="4" stroke-linecap="round"/>',
@@ -103,7 +103,7 @@ const World = (() => {
   }
 
   let reactTimer;
-  // تتفاعل حروفة مع إجابة الطفل ثم تعود لابتسامتها
+  // تتفاعل أرنوبة مع إجابة الطفل ثم تعود لابتسامتها
   function react(ok) {
     const b = document.getElementById('buddy');
     if (!b) return;
@@ -128,7 +128,7 @@ const World = (() => {
 
   return {
     CUTE, CLASSIC, lookOf, isCute, paint, react, bunny,
-    // صورة حروفة للرسم على canvas؛ ترجع null إن تعذّر تحميلها فتُرسم البطاقة بدونها
+    // صورة أرنوبة للرسم على canvas؛ ترجع null إن تعذّر تحميلها فتُرسم البطاقة بدونها
     bunnyImage: mood => new Promise(res => {
       const img = new Image();
       img.onload = () => res(img);
@@ -141,14 +141,14 @@ const World = (() => {
     greeting(streak) {
       if (!isCute()) return '';
       const tip = streak >= 3 ? STREAK_TIP(streak) : TIPS[new Date().getDate() % TIPS.length];
-      return `<div class="bunny-talk">${bunny('happy', 'talk-bunny')}<p><b>حروفة:</b> ${tip}</p></div>`;
+      return `<div class="bunny-talk">${bunny('happy', 'talk-bunny')}<p><b>أرنوبة:</b> ${tip}</p></div>`;
     },
     buddy: () => (isCute() ? `<div class="buddy" id="buddy">${bunny('happy')}</div>` : ''),
     resultFace(plain, good) { return isCute() ? bunny(good ? 'cheer' : 'happy', 'result-bunny') : plain; },
     lookPicker(look) {
       const opt = (v, ic, t, d) => `<button type="button" class="look-opt ${look === v ? 'selected' : ''}" data-act="pickLook" data-arg="${v}"><span>${ic}</span><b>${t}</b><small>${d}</small></button>`;
       return `<div class="label">اختر عالمك</div><div class="look-pick">
-        ${opt(CUTE, bunny('happy', 'look-bunny'), 'عالم حروفة', 'ألوان فاتحة وأرنبة لطيفة')}
+        ${opt(CUTE, bunny('happy', 'look-bunny'), 'عالم أرنوبة', 'ألوان فاتحة وأرنبة لطيفة')}
         ${opt(CLASSIC, '🦸', 'عالم الأبطال', 'ألوان داكنة ومغامرة')}
       </div>`;
     },

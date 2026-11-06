@@ -1,4 +1,4 @@
-/* ───── عالم حروفة: يُفعَّل بـ data-theme="cute" على <html> ───── */
+/* ───── عالم أرنوبة: يُفعَّل بـ data-theme="cute" على <html> ───── */
 .cloud, .sparkle { display: none; }
 
 html[data-theme="cute"] {
@@ -67,7 +67,7 @@ html[data-theme="cute"] {
 [data-theme="cute"] .online-strip { background: rgba(255, 255, 255, .8); color: var(--deep-dark); }
 [data-theme="cute"] .brain-steps span { background: rgba(255, 255, 255, .8); }
 
-/* ───── حروفة ───── */
+/* ───── أرنوبة ───── */
 .bunny { display: inline-block; width: 64px; height: 80px; line-height: 0; }
 .bunny svg { width: 100%; height: 100%; display: block; }
 .bunny.hop { animation: bunnyHop .55s ease-out; }
