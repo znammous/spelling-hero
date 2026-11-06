@@ -19,7 +19,7 @@ const AR_REGIONS = [
   { id: 'ar4', stage: 1, name: 'وادي التاء والهاء', icon: '🏕️', label: 'التاء المفتوحة والهاء', focus: 'ته',
     tip: 'التاء المفتوحة تبقى تاءً عند الوقف: بنت. والهاء تُنطق هاءً دائماً: وجه.',
     animal: { emoji: '🦊', name: 'الثعلب' },
-    words: ['بنت|👧|girl|بِنْت', 'زيت|🫒|oil|زَيْت', 'وقت|⏰|time|وَقْت', 'صوت|🔊|voice|صَوْت', 'نبات|🌱|plant|نَبَات', 'بنات|👭|girls|بَنَات', 'كتبت|✍️|she wrote|كَتَبَتْ', 'لعبت|🤸|she played|لَعِبَتْ', 'وجه|😊|face|وَجْه', 'قلبه|❤️|his heart|قَلْبُهُ', 'كتابه|📖|his book|كِتَابُهُ', 'انتبه|⚠️|watch out|اِنْتَبِهْ'] },
+    words: ['بنت|👧|girl|بِنْت', 'زيت|🫒|oil|زَيْت', 'وقت|⏰|time|وَقْت', 'صوت|🔊|voice|صَوْت', 'نبات|🌱|plant|نَبَات', 'بنات|👧👧|girls|بَنَات', 'كتبت|✍️|she wrote|كَتَبَتْ', 'لعبت|🤸|she played|لَعِبَتْ', 'وجه|😊|face|وَجْه', 'قلبه|❤️|his heart|قَلْبُهُ', 'كتابه|📖|his book|كِتَابُهُ', 'انتبه|⚠️|watch out|اِنْتَبِهْ'] },
 
   { id: 'ar5', stage: 2, name: 'جبل الشمس والقمر', icon: '🌄', label: 'ال الشمسية والقمرية', focus: 'ل',
     tip: 'اللام تُكتب دائماً في «ال» حتى لو لم تُنطق: الشمس.',
@@ -36,7 +36,7 @@ const AR_REGIONS = [
   { id: 'ar8', stage: 2, name: 'جسر لام الألف', icon: '🌉', label: 'كلمات فيها «لا»', focus: 'ل',
     tip: 'اللام والألف تتعانقان في الكتابة «لا»، فاكتب اللام ثم الألف.',
     animal: { emoji: '🕊️', name: 'الحمامة' },
-    words: ['سلام|🕊️|peace|سَلَام', 'كلام|💬|speech|كَلَام', 'هلال|🌙|crescent|هِلَال', 'بلاد|🌍|country|بِلَاد', 'فلاح|🧑‍🌾|farmer|فَلَّاح', 'لاعب|⚽|player|لَاعِب', 'ملابس|👕|clothes|مَلَابِس', 'طلاب|🧑‍🎓|students|طُلَّاب', 'صلاة|🕌|prayer|صَلَاة', 'علامة|✅|mark|عَلَامَة', 'ثلاثة|3️⃣|three|ثَلَاثَة', 'قلادة|📿|necklace|قِلَادَة'] },
+    words: ['سلام|🕊️|peace|سَلَام', 'كلام|💬|speech|كَلَام', 'هلال|🌙|crescent|هِلَال', 'بلاد|🌍|country|بِلَاد', 'فلاح|🧑‍🌾|farmer|فَلَّاح', 'لاعب|⚽|player|لَاعِب', 'ملابس|👕|clothes|مَلَابِس', 'طلاب|🧑‍🎓|students|طُلَّاب', 'صلاة|🕌|prayer|صَلَاة', 'علامة|✅|mark|عَلَامَة', 'ثلاثة|3️⃣|three|ثَلَاثَة', 'قلادة|💎|necklace|قِلَادَة'] },
   { id: 'ar9', stage: 2, name: 'غابة الحروف المتشابهة', icon: '🌲', label: 'ض ظ، س ص، ت ط، ذ ز، ق ك', focus: 'ضظسصتطذزقكث',
     tip: 'استمع جيداً لمخرج الحرف، واحفظ شكل الكلمة: ضفدع بالضاد، وظرف بالظاء.',
     animal: { emoji: '🐸', name: 'الضفدع' },
@@ -63,26 +63,26 @@ const AR_REGIONS = [
 // ───── خطة الإملاء الإنجليزية ─────
 const EN_REGIONS = [
   { id: 'en1', stage: 1, name: 'جزيرة الحروف القصيرة', icon: '🏝️', label: 'Short vowels (CVC)', focus: 'aeiou',
-    tip: 'الحرف المتحرك في الوسط قصير: cat, bed, pig, dog, sun.',
+    tip: 'الحرف المتحرك في الوسط قصير: cat, bed, pin, dog, sun.',
     animal: { emoji: '🐥', name: 'الصوص' },
-    words: ['cat|🐱|قطة', 'dog|🐶|كلب', 'sun|☀️|شمس', 'pig|🐷|خنزير', 'bed|🛏️|سرير', 'hat|🎩|قبعة', 'fox|🦊|ثعلب', 'bus|🚌|حافلة', 'net|🥅|شبكة', 'map|🗺️|خريطة', 'cup|🥤|كوب', 'box|📦|صندوق'] },
+    words: ['cat|🐱|قطة', 'dog|🐶|كلب', 'sun|☀️|شمس', 'pin|📌|دبوس', 'bed|🛏️|سرير', 'hat|🎩|قبعة', 'fox|🦊|ثعلب', 'bus|🚌|حافلة', 'net|🥅|شبكة', 'map|🗺️|خريطة', 'cup|🥤|كوب', 'box|📦|صندوق'] },
   { id: 'en2', stage: 1, name: 'مرفأ الحرفين', icon: '⚓', label: 'Blends (fr, dr, st, mp)', focus: 'frdlcstmp',
     tip: 'حرفان متجاوران يُسمع صوت كل منهما: frog, nest, lamp.',
     animal: { emoji: '🦀', name: 'السلطعون' },
-    words: ['frog|🐸|ضفدع', 'flag|🚩|علم', 'crab|🦀|سلطعون', 'drum|🥁|طبل', 'swim|🏊|يسبح', 'nest|🪺|عش', 'hand|✋|يد', 'lamp|💡|مصباح', 'milk|🥛|حليب', 'tent|⛺|خيمة', 'plum|🍑|برقوق', 'jump|🤸|يقفز'] },
+    words: ['frog|🐸|ضفدع', 'flag|🚩|علم', 'crab|🦀|سلطعون', 'drum|🥁|طبل', 'swim|🏊|يسبح', 'nest|🪺|عش', 'hand|✋|يد', 'lamp|💡|مصباح', 'milk|🥛|حليب', 'tent|⛺|خيمة', 'plum|🟣|برقوق', 'jump|🤸|يقفز'] },
   { id: 'en3', stage: 1, name: 'خليج الأصوات المزدوجة', icon: '🐚', label: 'sh, ch, th, wh, ck', focus: 'shcthwk',
     tip: 'حرفان يصنعان صوتاً واحداً: ship, chick, bath, whale, duck.',
     animal: { emoji: '🐋', name: 'الحوت' },
     words: ['ship|🚢|سفينة', 'fish|🐟|سمكة', 'shell|🐚|صدفة', 'chick|🐤|صوص', 'lunch|🍱|غداء', 'chin|🧔|ذقن', 'bath|🛁|حمّام', 'thin|📏|رفيع', 'whale|🐋|حوت', 'wheel|🛞|عجلة', 'duck|🦆|بطة', 'clock|⏰|ساعة'] },
-  { id: 'en4', stage: 1, name: 'تلة الـ e السحرية', icon: '🪄', label: 'Magic e', focus: 'e',
+  { id: 'en4', stage: 1, name: 'تلة الـ e الصامتة', icon: '🤫', label: 'Silent e', focus: 'e',
     tip: 'الـ e الأخيرة لا تُنطق، لكنها تجعل الحرف المتحرك قبلها طويلاً: kite, cake.',
-    animal: { emoji: '🦄', name: 'وحيد القرن' },
+    animal: { emoji: '🦏', name: 'وحيد القرن' },
     words: ['cake|🎂|كعكة', 'lake|🏞️|بحيرة', 'game|🎮|لعبة', 'bike|🚲|دراجة', 'kite|🪁|طائرة ورقية', 'five|5️⃣|خمسة', 'nine|9️⃣|تسعة', 'bone|🦴|عظمة', 'rose|🌹|وردة', 'home|🏠|منزل', 'cube|🧊|مكعب', 'tube|🧪|أنبوب'] },
 
   { id: 'en5', stage: 2, name: 'نهر الأحرف المتحركة', icon: '🛶', label: 'ai, ay, ee, ea, oa', focus: 'aeyo',
     tip: 'حرفان متحركان معاً يعطيان صوتاً طويلاً: rain, tree, boat.',
     animal: { emoji: '🦦', name: 'ثعلب الماء' },
-    words: ['rain|🌧️|مطر', 'train|🚆|قطار', 'snail|🐌|حلزون', 'play|🎲|يلعب', 'day|🌞|يوم', 'tree|🌳|شجرة', 'bee|🐝|نحلة', 'sea|🌊|بحر', 'leaf|🍃|ورقة شجر', 'read|📖|يقرأ', 'boat|⛵|قارب', 'goat|🐐|ماعز'] },
+    words: ['rain|🌧️|مطر', 'train|🚆|قطار', 'snail|🐌|حلزون', 'play|⚽|يلعب', 'day|🌞|يوم', 'tree|🌳|شجرة', 'bee|🐝|نحلة', 'sea|🌊|بحر', 'leaf|🍃|ورقة شجر', 'read|📖|يقرأ', 'boat|⛵|قارب', 'goat|🐐|ماعز'] },
   { id: 'en6', stage: 2, name: 'حقل الأصوات المميزة', icon: '🌾', label: 'oo, ou, ow, oy, ar, ir, or', focus: 'ouwyr',
     tip: 'احفظ مجموعات الصوت: moon, house, cow, boy, star, bird, horse.',
     animal: { emoji: '🐎', name: 'الحصان' },
@@ -99,7 +99,7 @@ const EN_REGIONS = [
   { id: 'en9', stage: 3, name: 'برج الأيام والشهور', icon: '🗼', label: 'Days & months', focus: '',
     tip: 'أيام الأسبوع والشهور تبدأ بحرف كبير دائماً، وانتبه: Wednesday فيها d صامتة.',
     animal: { emoji: '🐼', name: 'الباندا' },
-    words: ['Monday|📅|الإثنين', 'Tuesday|📅|الثلاثاء', 'Wednesday|📅|الأربعاء', 'Thursday|📅|الخميس', 'Friday|📅|الجمعة', 'Saturday|📅|السبت', 'Sunday|📅|الأحد', 'January|❄️|يناير', 'February|💝|فبراير', 'March|🌱|مارس', 'April|🌷|أبريل', 'August|🏖️|أغسطس'] },
+    words: ['Monday|📅|الإثنين', 'Tuesday|📅|الثلاثاء', 'Wednesday|📅|الأربعاء', 'Thursday|📅|الخميس', 'Friday|📅|الجمعة', 'Saturday|📅|السبت', 'Sunday|📅|الأحد', 'January|❄️|يناير', 'February|🌨️|فبراير', 'March|🌱|مارس', 'April|🌷|أبريل', 'August|🏖️|أغسطس'] },
   { id: 'en10', stage: 3, name: 'قصر الحروف الصامتة', icon: '🏰', label: 'Silent letters', focus: 'kbwgh',
     tip: 'حروف تُكتب ولا تُنطق: knife, lamb, write, night, castle.',
     animal: { emoji: '🦇', name: 'الخفاش' },
@@ -107,7 +107,7 @@ const EN_REGIONS = [
   { id: 'en11', stage: 3, name: 'ساحل الأصوات المتغيرة', icon: '🌅', label: 'Soft c/g, ph, -tion', focus: 'cgpt',
     tip: 'c قد تُنطق s، و g قد تُنطق j، و ph تُنطق f، و tion تُنطق «شن».',
     animal: { emoji: '🐬', name: 'الدلفين' },
-    words: ['city|🏙️|مدينة', 'juice|🧃|عصير', 'pencil|✏️|قلم رصاص', 'giant|🗿|عملاق', 'page|📄|صفحة', 'bridge|🌉|جسر', 'phone|📱|هاتف', 'dolphin|🐬|دلفين', 'elephant|🐘|فيل', 'station|🚉|محطة', 'question|❓|سؤال', 'picture|🖼️|صورة'] },
+    words: ['city|🏙️|مدينة', 'juice|🧃|عصير', 'pencil|✏️|قلم رصاص', 'giant|💪|عملاق', 'page|📄|صفحة', 'bridge|🌉|جسر', 'phone|📱|هاتف', 'dolphin|🐬|دلفين', 'elephant|🐘|فيل', 'station|🚉|محطة', 'question|❓|سؤال', 'picture|🖼️|صورة'] },
   { id: 'en12', stage: 3, name: 'قمة الأبطال', icon: '🏔️', label: 'Tricky long words', focus: '',
     tip: 'قسّم الكلمة الطويلة إلى مقاطع واكتبها مقطعاً مقطعاً: beau-ti-ful.',
     animal: { emoji: '🐅', name: 'النمر' },
@@ -123,7 +123,7 @@ const STAGES = {
 const WORLDS = [
   { id: 'ar', name: 'مملكة الضاد', short: 'الخطة العربية', icon: '🕌', planet: '📜', glow: '#ffc93c', c: '#1f9e9a', regions: AR_REGIONS,
     hint: 'من الكلمات القصيرة حتى الهمزات. أتقن كل منطقة لتفتح التالية وتكتشف حيوانها!' },
-  { id: 'en', name: 'مملكة الأبجدية', short: 'English Plan', icon: '🗽', planet: '🔤', glow: '#8fdcff', c: '#3f7fd9', regions: EN_REGIONS,
+  { id: 'en', name: 'مملكة الأبجدية', short: 'English Plan', icon: '🔠', planet: '🔤', glow: '#8fdcff', c: '#3f7fd9', regions: EN_REGIONS,
     hint: 'From short vowels to tricky words — من الحروف القصيرة حتى الكلمات الصعبة.' },
 ];
 
@@ -147,7 +147,7 @@ const ITEMS = [
   { id: 'cape',    emoji: '🦸', name: 'عباءة البطل',    price: 80 },
   { id: 'shield',  emoji: '🛡️', name: 'درع الحروف',     price: 100 },
   { id: 'scope',   emoji: '🔭', name: 'المنظار',        price: 120 },
-  { id: 'wand',    emoji: '🪄', name: 'عصا الكلمات',    price: 150 },
+  { id: 'wand',    emoji: '🖊️', name: 'قلم الكلمات',    price: 150 },
   { id: 'rocket',  emoji: '🚀', name: 'صاروخ السرعة',   price: 180 },
   { id: 'crown',   emoji: '👑', name: 'تاج الأبطال',    price: 220 },
   { id: 'castle',  emoji: '🏰', name: 'قلعة البطل',     price: 320 },
@@ -165,7 +165,7 @@ const RARE_ITEMS = [
 
 const AVATARS = [
   '🧒', '👦', '👧', '🦸', '🦸‍♀️', '🧑‍🚀', '🧑‍🎓', '🧕', '🤠', '🕵️',
-  '🐰', '🐱', '🐶', '🐼', '🐨', '🐵', '🦊', '🐯', '🦁', '🐸', '🦄', '🐢', '🦉', '🦜', '🐧', '🐝', '🦋',
+  '🐰', '🐱', '🐶', '🐼', '🐨', '🐵', '🦊', '🐯', '🦁', '🐸', '🦏', '🐢', '🦉', '🦜', '🐧', '🐝', '🦋',
   '⭐', '🌟', '💎', '👑', '🏆', '🌸', '🌻', '🍎', '🍉', '🍓',
 ];
 
@@ -184,7 +184,7 @@ const BADGES = [
   { id: 'exam',  icon: '📝', name: 'نجم الاختبار',    desc: 'اختبار بنتيجة كاملة', test: s => s.examPerfect >= 1 },
   { id: 'free',  icon: '✍️', name: 'صانع القوائم',    desc: 'تدرّب في الوضع الحر', test: s => s.freeRounds >= 1 },
   { id: 'ar',    icon: '🕌', name: 'فارس الضاد',      desc: 'أكمل الخطة العربية',  test: s => s.arDone },
-  { id: 'en',    icon: '🗽', name: 'English Hero',    desc: 'أكمل الخطة الإنجليزية', test: s => s.enDone },
+  { id: 'en',    icon: '🔠', name: 'English Hero',    desc: 'أكمل الخطة الإنجليزية', test: s => s.enDone },
 ];
 
 const CONFIG = {
