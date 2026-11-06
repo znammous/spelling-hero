@@ -11,6 +11,11 @@
   // الكلمة بتشكيلها: الحروف بلون النص والحركات بلون أفتح منه
   const lightMarks = s => esc(s).replace(/[\u064B-\u0652\u0670]+/g, m => `<span class="hk">${m}</span>`);
   const wordHTML = w => lightMarks(Engine.voweled(w));
+  // كل حرف مع حركته، والحرف الناقص بلا حركة حتى لا يبقى لها مكان معلّق
+  const fillHTML = (w, at) => {
+    const clusters = Engine.voweled(w).replace(/\s+/g, '').match(/[^\u064B-\u0652\u0670\u0640][\u064B-\u0652\u0670\u0640]*/g);
+    return `<span>${clusters.map((c, i) => (i === at ? '<b class="blank">؟</b>' : lightMarks(c))).join('')}</span>`;
+  };
   const kidColor = p => KID_COLORS[Store.state.profiles.indexOf(p) % KID_COLORS.length];
 
   let round = null;       // الجولة الجارية
@@ -57,8 +62,13 @@
       Actions.exitRound();
       return;
     }
+    if (Group.active()) {
+      history.pushState({ s: nav.cur, a: nav.arg }, '');
+      Group.exit();
+      return;
+    }
     const st = e.state || { s: Store.current() ? 'camp' : 'profiles', a: null };
-    if (!Store.current() && st.s !== 'profiles' && st.s !== 'newProfile') { nav.cur = 'profiles'; nav.arg = null; Screens.profiles(); return; }
+    if (!Store.current() && !['profiles', 'newProfile', 'join', 'parent'].includes(st.s)) { nav.cur = 'profiles'; nav.arg = null; Screens.profiles(); return; }
     nav.cur = st.s;
     nav.arg = st.a;
     Screens[st.s](st.a);
@@ -142,7 +152,8 @@
         <div class="avatars">${list.map(p => `<button class="avatar-card" style="--c:${kidColor(p)}" data-act="enter" data-arg="${p.id}">
           <span class="face">${p.avatar}</span><b>${esc(p.name)}</b></button>`).join('')}</div>` : ''}
         <button class="btn gold wide" data-act="newProfile">➕ ${list.length ? 'بطل جديد' : 'أنشئ بطلك وابدأ'}</button>
-        ${list.length ? '<button class="link-btn" data-act="openParent">👨‍👩‍👧 ولي الأمر</button>' : ''}
+        ${Sync.role() === 'device' ? '' : '<button class="btn soft wide" data-act="go" data-arg="join">📱 جهاز طفل؟ انضم برمز من ولي الأمر</button>'}
+        <button class="link-btn" data-act="openParent">👨‍👩‍👧 ولي الأمر</button>
       </section>`);
     },
 
@@ -206,6 +217,8 @@
           </div>
         </div>
 
+        ${Group.groupBtn()}
+
         <div class="stats-row">
           <div><b>${st.mastered}</b><span>كلمة متقنة</span></div>
           <div><b>${st.streak} 🔥</b><span>أيام متتالية</span></div>
@@ -242,7 +255,8 @@
 
         <div class="menu">
           <button class="big-btn gold" data-act="startRace"><span>🏃</span><b>سباق الحروف</b><small>${CONFIG.raceSeconds} ثانية من الكلمات</small></button>
-          <button class="big-btn teal" data-act="startTricky" ${hard ? '' : 'disabled'}><span>🎯</span><b>كلمات صعبة</b><small>${hard ? `${hard} تحتاج تدريباً` : 'لا توجد بعد'}</small></button>
+          <button class="big-btn pink" data-act="brainOpen"><span>🧠</span><b>تحدّي العقل</b><small>${Brain.GAMES.length} ألعاب قصيرة</small></button>
+          <button class="big-btn teal wide2" data-act="startTricky" ${hard ? '' : 'disabled'}><span>🎯</span><b>كلمات صعبة</b><small>${hard ? `${hard} تحتاج تدريباً` : 'لا توجد بعد'}</small></button>
         </div>
 
         ${owned.length ? `<div class="card"><h2>🎒 عدّة البطل</h2><div class="gear">${owned.map(i => `<span title="${i.name}">${i.emoji}</span>`).join('')}</div></div>` : ''}
@@ -640,7 +654,7 @@
       <p class="muted">تحفظ الملفات والقوائم والتقدم في ملف واحد لنقلها إلى جهاز آخر. لا تشمل التسجيلات الصوتية.</p>
       <div class="row"><button class="btn blue" data-act="backup">💾 حفظ نسخة</button><button class="btn soft" data-act="restore">📂 استعادة</button></div>
       <input type="file" id="backupFile" accept=".json,application/json" hidden>
-    </div>`;
+    </div>${Group.syncCard()}`;
   }
 
   function importFile(file) {
@@ -702,10 +716,9 @@
   };
   const HARAKAT_KEYS = ['َ', 'ُ', 'ِ', 'ّ', 'ْ', 'ً', 'ٌ', 'ٍ'];
   const keyBtn = (k, label = k, cls = '') => `<button class="k ${cls}" data-key="${esc(k)}">${label}</button>`;
-  function keyboard(word) {
+  function keyboard(word, caps = round && round.q && round.q.caps) {
     const strictT = word.lang === 'ar' && !S().ignoreTashkeel && Engine.strip(Engine.voweled(word)) !== Engine.voweled(word);
     const shift = word.lang === 'en' && S().strictCase;
-    const caps = round && round.q && round.q.caps;
     const rows = KB[word.lang].map(r => `<div class="k-row">${r.map(k => keyBtn(k, caps ? k.toUpperCase() : k)).join('')}</div>`);
     const last = word.lang === 'ar'
       ? ['أ', 'إ', 'آ'].map(k => keyBtn(k)).join('') + keyBtn(' ', 'مسافة', 'space') + keyBtn('del', '⌫', 'util') + keyBtn('ok', '✓', 'ok')
@@ -799,9 +812,7 @@
     $('answer').className = 'answer';
 
     if (stage === 'fill') {
-      // كل حرف مع حركته، والحرف الناقص بلا حركة حتى لا يبقى لها مكان معلّق
-      const clusters = Engine.voweled(word).replace(/\s+/g, '').match(/[^\u064B-\u0652\u0670\u0640][\u064B-\u0652\u0670\u0640]*/g);
-      box.innerHTML = `<span>${clusters.map((c, i) => (i === q.at ? '<b class="blank">؟</b>' : lightMarks(c))).join('')}</span>`;
+      box.innerHTML = fillHTML(word, q.at);
       $('answer').hidden = true;
       $('pad').innerHTML = `<div class="choices">${q.choices.map(c => `<button class="choice" data-choice="${esc(c)}">${esc(c)}</button>`).join('')}</div>`;
       $('flashFill').style.width = '0%';
@@ -1491,6 +1502,11 @@
   });
 
   // ───── التشغيل ─────
+  Group.install({
+    Screens, Actions, nav, render, go, redraw, toast, ask, confetti, esc, ltr, keyboard, wordHTML, fillHTML, wdir, kidColor, eventBanner,
+    inRound: () => !!round,
+  });
   Speech.loadKeys(() => { if (nav.cur === 'list' || nav.cur === 'region') redraw(); });
   go(Store.current() ? 'camp' : 'profiles', null, true);
+  Group.fromHash();
 })();

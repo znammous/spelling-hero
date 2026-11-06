@@ -199,7 +199,8 @@ const CONFIG = {
   chestRareChance: 0.3, // احتمال قطعة نادرة في كنز اليوم
 };
 
-const COINS = { perCorrect: 1, perWrite: 2, roundDone: 5, perfect: 10, unlock: 15, animal: 10, record: 10, chestMin: 20, chestMax: 50 };
+const COINS = { perCorrect: 1, perWrite: 2, roundDone: 5, perfect: 10, unlock: 15, animal: 10, record: 10, chestMin: 20, chestMax: 50, duelWin: 15 };
+const MAX_WINS = 200;   // أقصى عدد في سجل الفائزين
 
 const DEFAULT_SETTINGS = {
   flash: 3,             // ثوانٍ إظهار الكلمة: 0 سماعي فقط، -1 تبقى ظاهرة
