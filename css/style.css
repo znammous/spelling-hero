@@ -119,8 +119,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--primary); }
 .bar { display: block; height: 14px; background: var(--line); border-radius: 99px; overflow: hidden; width: 100%; }
 .bar i { display: block; height: 100%; border-radius: 99px; min-width: 0; background: linear-gradient(-45deg, rgba(255, 255, 255, .28) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .28) 50%, rgba(255, 255, 255, .28) 75%, transparent 75%) 0 0 / 28px 28px, var(--c, var(--primary)); animation: stripes 1.4s linear infinite; }
 .toast { position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%); z-index: 90; width: max-content; max-width: 90vw; padding: 11px 20px; border-radius: 16px; text-align: center; font-weight: 700; background: #fff; color: var(--deep-dark); box-shadow: 0 6px 18px rgba(0, 0, 0, .35); }
-.credits { text-align: center; color: var(--on-dark); font-size: .82rem; line-height: 1.7; padding-top: 6px; opacity: .9; }
-.credits b { color: var(--gold); }
 .empty { text-align: center; color: var(--muted); }
 .empty span { font-size: 3rem; display: block; }
 

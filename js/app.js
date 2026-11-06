@@ -96,7 +96,6 @@
       ${p ? `<div class="chip coins">🪙 <b>${p.coins}</b></div>` : ''}
     </header>`;
   };
-  const credit = `<footer class="credits">مقتبسة من فكرة «مطار الإملاء» من إعداد <b>غنى وملاك النموس</b><br>مدرسة النور الدولية</footer>`;
 
   const eventBanner = e => (e.type === 'unlock'
     ? `🔓 فتحت منطقة جديدة: ${e.region.icon} ${e.region.name}`
@@ -141,7 +140,6 @@
           <span class="face">${p.avatar}</span><b>${esc(p.name)}</b></button>`).join('')}</div>` : ''}
         <button class="btn gold wide" data-act="newProfile">➕ ${list.length ? 'بطل جديد' : 'أنشئ بطلك وابدأ'}</button>
         ${list.length ? '<button class="link-btn" data-act="openParent">👨‍👩‍👧 ولي الأمر</button>' : ''}
-        ${credit}
       </section>`);
     },
 
@@ -246,7 +244,6 @@
 
         ${owned.length ? `<div class="card"><h2>🎒 عدّة البطل</h2><div class="gear">${owned.map(i => `<span title="${i.name}">${i.emoji}</span>`).join('')}</div></div>` : ''}
         <button class="link-btn" data-act="openParent">👨‍👩‍👧 ولي الأمر والإعدادات</button>
-        ${credit}
       </section>`);
     },
 
