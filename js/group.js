@@ -1315,10 +1315,17 @@ const Group = (() => {
     else {
       const label = { syncing: '⏳ جارٍ المزامنة…', offline: '📴 بدون اتصال — تُرفع التعديلات عند عودة الإنترنت', ok: `✅ متزامن${when ? ` · آخر مزامنة ${when}` : ''}`, error: '⚠️ تعذّرت المزامنة' }[st] || '';
       body = Sync.role() === 'device'
-        ? `<p>${label}</p><p class="muted">📱 هذا الجهاز مرتبط بحساب العائلة برمز من ولي الأمر.</p><button class="link-btn dark" data-act="syncOut">فصل هذا الجهاز عن العائلة</button>`
+        ? `<p>${label}</p><p class="muted">📱 هذا الجهاز مرتبط بحساب العائلة برمز من ولي الأمر.</p>${ownerBox()}<button class="link-btn dark" data-act="syncOut">فصل هذا الجهاز عن العائلة</button>`
         : `<p>${label}</p><p class="muted" dir="ltr">${C.esc(Sync.email())}</p>${devicesBox()}<button class="link-btn dark" data-act="syncOut">تسجيل الخروج من هذا الجهاز</button>`;
     }
     return `<div class="card" id="syncCard"><h2>☁️ المزامنة بين الأجهزة</h2>${body}</div>`;
+  }
+  // صاحب الجهاز يدخل ملفه مباشرة، وبقية الأبطال يحتاجون رمزهم السري
+  function ownerBox() {
+    const own = Store.state.owner;
+    return `<p class="lbl">👤 صاحب هذا الجهاز</p><div class="chips">${Store.state.profiles.map(k =>
+      `<button class="land-chip ${own === k.id ? 'on' : ''}" data-act="setOwner" data-arg="${k.id}">${k.avatar} ${C.esc(k.name)}</button>`).join('')}
+      <button class="land-chip ${own ? '' : 'on'}" data-act="setOwner" data-arg="">👨‍👩‍👧 جهاز مشترك</button></div>`;
   }
   const refreshSync = () => { const el = $('syncCard'); if (el) el.outerHTML = syncCard(); };
   function stopScan() {
@@ -1368,6 +1375,8 @@ const Group = (() => {
     C.toast('⏳ جارٍ الانضمام…');
     Sync.join(code, /iPad|Tablet|Android/i.test(navigator.userAgent) ? 'تابلت' : 'جهاز').then(k => {
       pendingKid = k || null;
+      Store.state.owner = k || '';
+      Store.save();
       C.toast('✅ انضم الجهاز إلى العائلة');
       applyPendingKid();
       C.go('profiles', null, true);
@@ -1477,6 +1486,7 @@ const Group = (() => {
       setTimeout(() => { if (mine()) { pairing = null; refreshSync(); } }, exp - Date.now() + 500);
     },
     cancelPair() { pairing = null; refreshSync(); },
+    setOwner(id) { Store.state.owner = id || ''; Store.save(); refreshSync(); },
     removeDevice(id) {
       C.ask('فصل هذا الجهاز؟', 'لن يستطيع الوصول إلى بيانات العائلة بعد ذلك.', 'فصل', true).then(ok => {
         if (ok) Sync.removeDevice(id).then(() => C.toast('تم فصل الجهاز')).catch(() => C.toast('⚠️ تعذّر فصل الجهاز'));
@@ -1525,6 +1535,10 @@ const Group = (() => {
     Sync.online.on(refreshOnline);
     Sync.onUpdate(changed => {
       if (!beat.done && Sync.duel.ready()) { beat.done = true; beat(); }
+      // صاحب الجهاز: جهاز انضم قبل هذا الإصدار يأخذه من سجلّه، والجهاز المفصول يعود جهازاً عادياً
+      const mk = Sync.memberKid();
+      if (Sync.role() === 'device' && mk && !Store.state.owner) { Store.state.owner = mk; Store.save(); }
+      if (Sync.status() === 'out' && Store.state.owner) { Store.state.owner = ''; Store.save(); }
       refreshSync();
       if (C.nav.cur === 'groupSetup' && !busy() && !document.querySelector('.group-results') && !changed) {
         const btn = document.querySelector('[data-act=netHost]');

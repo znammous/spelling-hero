@@ -89,6 +89,7 @@ const Sync = (() => {
       // إذا فصل ولي الأمر هذا الجهاز نخرج منه ويبقى التقدّم محفوظاً عليه
       memberUnsub = fb.fs.onSnapshot(fb.fs.doc(fb.db, 'families', fid, 'members', u.uid), snap => {
         memberData = snap.exists() ? snap.data() : null;
+        notify(false);
         if (snap.metadata.fromCache) return;
         if (!memberData || !inApp(memberData)) leave();
       }, () => {});
@@ -276,6 +277,8 @@ const Sync = (() => {
     // 'parent' حساب Google | 'device' جهاز انضم برمز | '' غير مسجّل
     role: () => !fid ? '' : user.isAnonymous ? 'device' : 'parent',
     devices: () => devices,
+    // طفل جهاز الطفل حسب سجلّه في العائلة: null إن لم يُعرف بعد، و'' لجهاز مشترك
+    memberKid: () => (memberData && fid && user && user.isAnonymous ? appKid(memberData) : null),
     lastSync: () => lastSync,
     // changed = true عندما وصلت بيانات جديدة من جهاز آخر
     onUpdate: fn => listeners.push(fn),

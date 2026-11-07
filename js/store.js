@@ -2,7 +2,7 @@
 const Store = (() => {
   const KEY = 'spelling-hero-v1';
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  const blank = () => ({ profiles: [], current: null, lists: [], wins: [], deleted: {}, settings: Object.assign({}, DEFAULT_SETTINGS), settingsAt: 0, pin: '', muted: false, linked: false });
+  const blank = () => ({ profiles: [], current: null, lists: [], wins: [], deleted: {}, settings: Object.assign({}, DEFAULT_SETTINGS), settingsAt: 0, pin: '', muted: false, linked: false, owner: '' });
   let lastSaved = {};
   let onSave = () => {};
   const snap = x => JSON.stringify(Object.assign({}, x, { updatedAt: 0 }));
@@ -22,6 +22,7 @@ const Store = (() => {
         s.wins = s.wins || [];
         s.deleted = s.deleted || {};
         s.settingsAt = s.settingsAt || 0;
+        s.owner = s.owner || '';
         s.profiles.forEach(p => { p.updatedAt = p.updatedAt || p.created || 0; });
         s.lists.forEach(l => { l.updatedAt = l.updatedAt || l.created || 0; });
         return s;
@@ -136,6 +137,7 @@ const Store = (() => {
       api.state.profiles = api.state.profiles.filter(p => p.id !== id);
       api.state.deleted[id] = Date.now();
       if (api.state.current === id) api.state.current = null;
+      if (api.state.owner === id) api.state.owner = '';
       api.save();
     },
     addList(name) {

@@ -24,6 +24,7 @@
   let newAvatar = AVATARS[0];
   let newLook = World.CUTE;
   let parentOK = false;   // فُتحت لوحة ولي الأمر بالرمز في هذه الزيارة
+  let kidPinShown = false; // ولي الأمر أظهر رمز البطل المختار
   let parentTab = 'kids';
   let parentKid = null;
   let pinState = null;    // { stage: 'enter'|'new'|'confirm', buf, first }
@@ -599,6 +600,12 @@
       <div class="card"><h2>🎯 كلمات تحتاج تدريباً</h2>
         ${hard.length ? `<div class="chips">${hard.map(w => `<span class="w-chip" dir="${wdir(w)}">${wordHTML(w)}</span>`).join('')}</div>` : '<p class="muted">لا توجد كلمات صعبة حتى الآن 👏</p>'}
       </div>
+      <div class="card"><h2>🔑 رمز دخول ${esc(k.name)}</h2>
+        <p class="muted">${k.pin ? `الرمز الحالي: ${ltr(kidPinShown ? k.pin : '••••')}` : 'لم يُختر بعد: سيختاره عند دخوله أول مرة.'}
+          ${k.pin ? `<button class="link-btn dark" data-act="toggleKidPin">${kidPinShown ? '🙈 إخفاء' : '👁️ إظهار'}</button>` : ''}</p>
+        <div class="row"><input id="kidPinInput" type="tel" inputmode="numeric" maxlength="4" autocomplete="off" dir="ltr" placeholder="رمز جديد من 4 أرقام">
+          <button class="btn soft" data-act="setKidPin">حفظ</button></div>
+      </div>
       <button class="btn red wide" data-act="deleteKid" data-arg="${k.id}">🗑️ حذف ملف ${esc(k.name)}</button>`;
   }
 
@@ -1123,7 +1130,14 @@
       Store.save();
       go('camp');
     },
-    enter(id) { Store.state.current = id; Store.save(); Sound.play('open'); go('camp'); },
+    // صاحب الجهاز يدخل مباشرة، وغيره يدخل برمزه السري (ومن لا رمز له يختار رمزاً أول مرة)
+    enter(id) {
+      const p = Store.state.profiles.find(x => x.id === id);
+      if (!p) return;
+      if (id === Store.state.owner) { enterKid(id); return; }
+      pinState = { stage: p.pin ? 'enter' : 'new', buf: '', kid: id };
+      pinModal();
+    },
     switchKid() { Store.state.current = null; Store.save(); go('profiles'); },
     beginFree() { go('free'); },
     beginWorld(id) { Store.current().world = id; Store.save(); go('map', id); },
@@ -1344,7 +1358,19 @@
     },
     leaveParent() { parentOK = false; go(Store.current() ? 'camp' : 'profiles'); },
     parentTab(t) { parentTab = t; Screens.parent(); },
-    parentKid(id) { parentKid = id; Screens.parent(); },
+    parentKid(id) { parentKid = id; kidPinShown = false; Screens.parent(); },
+    toggleKidPin() { kidPinShown = !kidPinShown; Screens.parent(); },
+    setKidPin() {
+      const k = Store.state.profiles.find(x => x.id === parentKid);
+      const v = ($('kidPinInput').value || '').trim();
+      if (!k) return;
+      if (!/^[0-9]{4}$/.test(v)) { toast('الرمز 4 أرقام'); return; }
+      k.pin = v;
+      Store.save();
+      kidPinShown = true;
+      toast(`🔑 الرمز الجديد لـ${k.name}: ${v}`, 3500);
+      Screens.parent();
+    },
     unlockAll(w) {
       const k = Store.state.profiles.find(x => x.id === parentKid);
       Engine.state(k, w).unlocked = Engine.world(w).regions.length;
@@ -1373,6 +1399,7 @@
       else if (pinState.buf.length < 4) pinState.buf += k;
       if (pinState.buf.length < 4) { pinDots(); return; }
       const v = pinState.buf;
+      if (pinState.kid) { kidPinKey(v); return; }
       if (pinState.stage === 'enter') {
         if (v === Store.state.pin) { closeModal(); pinState = null; parentOK = true; go('parent'); }
         else { pinState.buf = ''; Sound.play('wrong'); $('pinTitle').textContent = '❌ رمز غير صحيح'; pinDots(); }
@@ -1394,6 +1421,7 @@
     },
     pinCancel() { closeModal(); pinState = null; },
     forgotPin() {
+      if (pinState && pinState.kid) { toast('اطلب من ولي الأمر أن يريك رمزك من لوحته 👨‍👩‍👧', 3500); return; }
       const a = 12 + Math.floor(Math.random() * 7);
       const b = 13 + Math.floor(Math.random() * 7);
       showModal(`<h2>نسيت الرمز؟</h2><p class="muted">للتأكد أنك ولي الأمر، كم حاصل ${ltr(`${a} × ${b}`)}؟</p>
@@ -1419,8 +1447,37 @@
     const word = (t || '').trim();
     return word ? [{ t: word, h: (h || '').trim() }] : [];
   }
+  function enterKid(id) { Store.state.current = id; Store.save(); Sound.play('open'); go('camp'); }
+  // رمز البطل: الدخول به، أو اختياره أول مرة ثم تأكيده
+  function kidPinKey(v) {
+    const p = Store.state.profiles.find(x => x.id === pinState.kid);
+    if (!p) { closeModal(); pinState = null; return; }
+    if (pinState.stage === 'enter') {
+      if (v === p.pin) { closeModal(); pinState = null; enterKid(p.id); return; }
+      pinState.buf = '';
+      Sound.play('wrong');
+      $('pinTitle').textContent = '❌ رمز غير صحيح';
+      pinDots();
+    } else if (pinState.stage === 'new') {
+      pinState = { stage: 'confirm', first: v, buf: '', kid: p.id };
+      pinModal();
+    } else if (v === pinState.first) {
+      p.pin = v;
+      closeModal();
+      pinState = null;
+      toast('🔑 حُفظ رمزك، تذكّره جيداً', 3000);
+      enterKid(p.id);
+    } else {
+      pinState = { stage: 'new', buf: '', kid: p.id };
+      pinModal();
+      $('pinTitle').textContent = '❌ لم يتطابق الرمز. أعد المحاولة';
+    }
+  }
   function pinModal() {
-    const titles = { enter: 'أدخل رمز ولي الأمر', new: 'اختر رمزاً من 4 أرقام', confirm: 'أعد إدخال الرمز' };
+    const k = pinState.kid && Store.state.profiles.find(x => x.id === pinState.kid);
+    const titles = k
+      ? { enter: `${k.avatar} أدخل رمز ${esc(k.name)} السري`, new: `${k.avatar} اختر رمزاً سرياً من 4 أرقام يحمي ملف ${esc(k.name)} 🔒`, confirm: 'أعد إدخال الرمز للتأكيد' }
+      : { enter: 'أدخل رمز ولي الأمر', new: 'اختر رمزاً من 4 أرقام', confirm: 'أعد إدخال الرمز' };
     showModal(`<h2 id="pinTitle">${titles[pinState.stage]}</h2>
       <div class="pin-dots" id="pinDots"></div>
       <div class="numpad" dir="ltr">
