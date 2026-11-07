@@ -1553,8 +1553,12 @@
 
   // يقسم النص إلى كلمات: السطر الجديد وأي رمز بين الكلمات (، - ـ / \ | . ؛ ...) فاصل.
   // تبقى «=» لكتابة المعنى، والفاصلة العليا داخل الكلمة الإنجليزية (don't). الشرطة فاصل دائماً.
-  const WORD_SEP = /(?:[\n\r\t\u0640]|[^\p{L}\p{M}\p{N}\s='\u2019]|(?<![A-Za-z])['\u2019]|['\u2019](?![A-Za-z]))+/u;
-  function splitWords(text) { return String(text).split(WORD_SEP).flatMap(parseLine); }
+  // بلا lookbehind لأن متصفحات آيفون القديمة لا تفهمه فيتعطل الملف كله
+  const WORD_SEP = /(?:[\n\r\t\u0640]|[^\p{L}\p{M}\p{N}\s=\uE000])+/u;
+  function splitWords(text) {
+    return String(text).replace(/([A-Za-z])['\u2019](?=[A-Za-z])/g, '$1\uE000')
+      .split(WORD_SEP).map(x => x.replace(/\uE000/g, "'")).flatMap(parseLine);
+  }
   function parseLine(s) {
     const [t, h] = String(s).split('=');
     const word = (t || '').trim();
