@@ -24,6 +24,7 @@
   let newAvatar = AVATARS[0];
   let newLook = World.CUTE;
   let parentOK = false;   // فُتحت لوحة ولي الأمر بالرمز في هذه الزيارة
+  let listEditing = null;  // القائمة المفتوحة للتعديل
   let kidPinShown = '';    // البطل الذي أظهر ولي الأمر رمزه
   let parentTab = 'kids';
   let parentKid = null;
@@ -348,9 +349,13 @@
       const l = Store.list(id);
       if (!l) return go('free', null, true);
       const p = Store.current();
+      // يفتح الطفل القائمة على التدريب مباشرة، والتعديل خلف زر (والقائمة الفارغة تُفتح للتعديل)
+      const editing = listEditing === l.id || !l.words.length;
       render(`<section class="screen">
-        ${subHeader('📝 قائمتي', 'free')}
-        <div class="card">
+        ${subHeader(`📝 ${esc(l.name)}`, 'free')}
+        <div id="listPlay">${listPlay(p, l)}</div>
+        ${editing ? `<div class="card">
+          <h2>✏️ تعديل القائمة</h2>
           <label class="lbl" for="lname">اسم القائمة</label>
           <input id="lname" type="text" maxlength="40" value="${esc(l.name)}" data-listname="${l.id}">
           <div style="height:12px"></div>
@@ -364,13 +369,15 @@
           <p class="muted small-note">🎤 اضغط المايكروفون لتسجيل نطق الكلمة بصوتك، فتسمعه اللعبة بدل صوت الجهاز.</p>
           <button class="btn soft wide small" data-act="fetchMeanings" data-arg="${l.id}">🌐 جلب المعاني والإيموجي الناقصة من الإنترنت</button>
           <div id="wordsBox" class="wordlist">${listRows(l)}</div>
+          ${l.words.length ? `<button class="btn green wide top8" data-act="listEdit" data-arg="">✅ تمّ التعديل</button>` : ''}
         </div>
-        <div id="listPlay">${listPlay(p, l)}</div>
         <div class="row">
           <button class="btn soft" data-act="exportList" data-arg="${l.id}">💾 حفظ ملف</button>
           <button class="btn red" data-act="deleteList" data-arg="${l.id}">🗑️ حذف</button>
-        </div>
+        </div>`
+        : `<button class="btn soft wide" data-act="listEdit" data-arg="${l.id}">✏️ تعديل القائمة وكلماتها</button>`}
       </section>`);
+      if (!editing) return;
       $('newWord').addEventListener('keydown', e => { if (e.key === 'Enter') Actions.addWord(l.id); });
       $('lname').addEventListener('change', e => { l.name = e.target.value.trim() || l.name; Store.save(); });
     },
@@ -601,25 +608,36 @@
       open = i;
       if (Engine.mastery(p, groups[i]) < CONFIG.unlockAt) break;
     }
-    const opts = [[0, 'كل الكلمات معاً'], [3, '3 كلمات'], [5, '5 كلمات'], [8, '8 كلمات'], [10, '10 كلمات']];
+    const opts = [[0, 'كلها معاً'], [3, '3'], [5, '5'], [8, '8'], [10, '10']].filter(o => !o[0] || o[0] < n);
     const st = Engine.state(p, 'list:' + l.id);
+    const many = Store.state.profiles.length > 1;
     return `<div class="card">
-      <h2>🚀 تدرّب على القائمة</h2>
-      <label class="lbl" for="chunk">🪜 خطة تدريجية: قسّم القائمة إلى مجموعات من</label>
-      <select id="chunk" data-chunk="${l.id}">${opts.map(o => `<option value="${o[0]}" ${l.chunk === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select>
+      <h2>🪜 التدريب التدريجي</h2>
+      ${opts.length > 1 ? `<p class="lbl">كم كلمة تتدرّب عليها في كل مرة؟</p>
+      <div class="chips chunk-chips">${opts.map(o => `<button class="land-chip ${(l.chunk || 0) === o[0] ? 'on' : ''}" data-act="setChunk" data-arg="${o[0]}" data-list="${l.id}">${o[0] ? `${o[1]} كلمات` : o[1]}</button>`).join('')}</div>` : ''}
       <div class="trail-map tight">${groups.map((g, i) => {
         const locked = groups.length > 1 && i > open;
         const m = Engine.mastery(p, g);
-        return `<button class="region full ${locked ? 'locked' : ''} ${m >= CONFIG.unlockAt ? 'done' : ''}" style="--c:#c2457d" data-act="startListGroup" data-arg="${i}" data-list="${l.id}">
+        return `<button class="region full group-words ${locked ? 'locked' : ''} ${m >= CONFIG.unlockAt ? 'done' : ''}" style="--c:#c2457d" data-act="startListGroup" data-arg="${i}" data-list="${l.id}">
           <span class="region-icon">${locked ? '🔒' : m >= CONFIG.unlockAt ? '⭐' : '🎯'}</span>
-          <span class="region-info"><b>${groups.length > 1 ? `المجموعة ${i + 1}` : 'تدريب تدريجي'}</b>
-          <small dir="auto">${esc(g.slice(0, 4).map(w => w.t).join(' · '))}${g.length > 4 ? ' …' : ''}</small>${bar(m)}</span>
+          <span class="region-info"><b>${groups.length > 1 ? `المجموعة ${i + 1}` : 'تدرّب على كل الكلمات'} <small>${ltr(Math.round(m * 100) + '%')}</small></b>
+          <span class="chips">${g.map(w => `<span class="w-chip" dir="${wdir(w)}">${wordHTML(w)}</span>`).join('')}</span>${bar(m)}</span>
         </button>`;
       }).join('')}</div>
-      <div class="menu top">
-        <button class="big-btn blue" data-act="startListExam" data-arg="${l.id}"><span>📝</span><b>اختبار إملاء</b><small>${n} كلمة${st.examBest !== null ? ` · الأفضل ${st.examBest}/${n}` : ''}</small></button>
+    </div>
+    <div class="card">
+      <h2>🎮 العب بكلمات القائمة</h2>
+      <div class="menu">
+        <button class="big-btn blue" data-act="startListExam" data-arg="${l.id}"><span>📝</span><b>اختبار إملاء</b><small>${n} كلمة${st.examBest !== null && st.examBest !== undefined ? ` · الأفضل ${st.examBest}/${n}` : ''}</small></button>
         <button class="big-btn gold" data-act="startListRace" data-arg="${l.id}"><span>🏃</span><b>سباق</b><small>${st.bestRace ? `الأفضل ${st.bestRace}` : `${CONFIG.raceSeconds} ثانية`}</small></button>
+        <button class="big-btn pink wide2" data-act="brainOpen" data-arg="${l.id}"><span>🧠</span><b>تحدّي العقل</b><small>${Brain.GAMES.length} ألعاب قصيرة</small></button>
       </div>
+      ${many ? `<h3 class="sub-h">🤝 مع إخوتك</h3>
+      <div class="menu">
+        <button class="big-btn teal" data-act="playList" data-kind="brain" data-arg="${l.id}"><span>🧠</span><b>مبارزة العقول</b><small>من يفوز بأكثر الألعاب؟</small></button>
+        <button class="big-btn gold" data-act="playList" data-kind="race" data-arg="${l.id}"><span>🏃</span><b>سباق الحروف</b><small>من يصل أولاً؟</small></button>
+        <button class="big-btn blue wide2" data-act="playList" data-kind="rope" data-arg="${l.id}"><span>🪢</span><b>شدّ الحبل</b><small>لاعبان وجهاً لوجه</small></button>
+      </div>` : ''}
     </div>`;
   }
   function refreshList(l) {
@@ -1488,6 +1506,14 @@
         if (ok) { Store.removeList(id); go('free', null, true); }
       });
     },
+    listEdit(id) { listEditing = id || null; redraw(); },
+    setChunk(v, el) {
+      const l = Store.list(el.dataset.list);
+      if (!l) return;
+      l.chunk = Number(v);
+      Store.save();
+      refreshList(l);
+    },
     startListGroup(i, el) {
       const l = Store.list(el.dataset.list);
       const groups = Engine.chunks(l);
@@ -1724,14 +1750,6 @@
     if (ch) return chooseFill(ch.dataset.choice, ch);
     const b = e.target.closest('[data-act]');
     if (b && !b.disabled && Actions[b.dataset.act]) Actions[b.dataset.act](b.dataset.arg, b);
-  });
-  document.addEventListener('change', e => {
-    const c = e.target.closest('[data-chunk]');
-    if (!c) return;
-    const l = Store.list(c.dataset.chunk);
-    l.chunk = Number(c.value);
-    Store.save();
-    refreshList(l);
   });
 
   function pickTile(i) {

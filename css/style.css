@@ -624,3 +624,9 @@ input[type=checkbox] { width: 24px; height: 24px; flex-shrink: 0; accent-color: 
 .race-chart .col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 3px; min-width: 0; }
 .race-chart .col span { font-size: .78rem; font-weight: 800; color: var(--deep); }
 .race-chart .col i { display: block; width: 100%; max-width: 28px; border-radius: 8px 8px 3px 3px; background: linear-gradient(var(--primary), var(--deep)); }
+
+/* التدريب التدريجي في القائمة الحرة */
+.chunk-chips { margin: 4px 0 12px; }
+.group-words .region-info .chips { margin: 6px 0; gap: 5px; }
+.group-words .w-chip { font-size: .95rem; padding: 1px 9px; }
+.group-words .region-info b small { color: var(--muted); font-weight: 700; margin-inline-start: 6px; }

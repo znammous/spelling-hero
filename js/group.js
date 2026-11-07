@@ -16,6 +16,8 @@ const Group = (() => {
   let pairing = null;        // رمز انضمام جهاز يعرضه ولي الأمر: { code, exp, kid, ready }
   let pendingKid = null;     // صاحب الجهاز الذي انضم، ننتظر وصول ملفه بالمزامنة
   let scanStream = null;
+  let groupBack = null;      // من أين فُتحت شاشة اللعب مع الإخوة: { s, a }
+  let brainLand = null;      // كلمات تحدّي العقل: قائمة حرة اختارها الطفل، أو خطته
 
   const $ = id => document.getElementById(id);
   const ALL = 'all';
@@ -63,6 +65,7 @@ const Group = (() => {
     return Engine.listWords(l || { id: src.slice(5), words: inline || [] });
   }
   const poolsFor = (p, land, inline) => Object.fromEntries(kidLands(land).map(src => [src, wordsOf(p, src, inline)]));
+  const brainList = () => (brainLand && landUsable(brainLand) ? brainLand : null);
   const landUsable = id => (isList(id) ? !!Store.list(id.slice(5)) && Store.list(id.slice(5)).words.length > 0 : true);
   function duelGoal(p, land = duelLand) {
     const ws = kidLands(land);
@@ -100,7 +103,7 @@ const Group = (() => {
       const lands = [...WORLDS.map(w => w.id), ALL, ...Store.state.lists.filter(l => l.words.length).map(l => 'list:' + l.id)];
       C.render(`<section class="screen">
         <header class="topbar">
-          <button class="chip" data-act="go" data-arg="camp">→ رجوع</button>
+          <button class="chip" data-act="groupBack">→ رجوع</button>
           <h2 class="topbar-title">🤝 العب مع إخوتك</h2><span></span>
         </header>
         <div class="world-switch">
@@ -255,9 +258,9 @@ const Group = (() => {
       const ids = brainChoice();
       const mins = Math.max(1, Math.round(ids.length * (Brain.SECONDS + 3) / 60));
       C.render(`<section class="screen">
-        <header class="topbar"><button class="chip" data-act="go" data-arg="camp">→ رجوع</button>
+        <header class="topbar"><button class="chip" data-act="brainBack">→ رجوع</button>
           <h2 class="topbar-title">🧠 تحدّي العقل</h2><span></span></header>
-        <p class="hint">ألعاب إملاء قصيرة من الكلمات التي وصلت إليها، وتصعب كلما أجبت صحيحاً.</p>
+        <p class="hint">${brainList() ? `ألعاب إملاء قصيرة من كلمات ${C.esc(landName(brainLand))}، وتصعب كلما أجبت صحيحاً.` : 'ألعاب إملاء قصيرة من الكلمات التي وصلت إليها، وتصعب كلما أجبت صحيحاً.'}</p>
         <div class="card"><h2>🎮 اختر ألعابك</h2>${brainPickGrid(ids, 'brainToggle', true)}</div>
         <button class="btn gold wide" data-act="brainStart" ${ids.length ? '' : 'disabled'}>ابدأ ▶ ${ids.length ? `(${C.ltr(ids.length)} · نحو ${C.ltr(mins)} د)` : ''}</button>
         ${Store.state.profiles.length > 1 ? '<button class="btn green wide" data-act="brainInvite">⚔️ ادعُ إخوتك لمبارزة العقول</button>' : ''}
@@ -925,7 +928,7 @@ const Group = (() => {
     if (!ids.length) return;
     Sound.unlock();
     C.nav.cur = 'duel';
-    brain = { duel: false, g: 0, ids, phase: 'intro', sides: [brainSideFor(p, p.world || 'ar', ids)], timer: null, timeouts: [] };
+    brain = { duel: false, g: 0, ids, phase: 'intro', sides: [brainSideFor(p, brainList() || p.world || 'ar', ids)], timer: null, timeouts: [] };
     Screens.brain();
   }
   function startBrainDuel(players) {
@@ -1399,6 +1402,7 @@ const Group = (() => {
   // ───── الأزرار ─────
   const Actions = {
     groupOpen() {
+      groupBack = null;
       const p = Store.current();
       duelKind = 'race';
       duelLand = (p && p.world) || 'ar';
@@ -1442,7 +1446,20 @@ const Group = (() => {
         C.go(wasDuel ? 'groupSetup' : 'brainSetup');
       });
     },
-    brainOpen() { C.go('brainSetup'); },
+    // من شاشة القائمة: arg معرّف القائمة، ومن الرئيسية: بلا قائمة
+    brainOpen(id) { brainLand = id ? 'list:' + id : null; C.go('brainSetup'); },
+    brainBack() { const l = brainList(); l ? C.go('list', l.slice(5)) : C.go('camp'); },
+    // كل ألعاب الإخوة بكلمات قائمة حرة اختارها الطفل
+    playList(id, el) {
+      const p = Store.current();
+      duelKind = (el && el.dataset.kind) || 'race';
+      duelLand = 'list:' + id;
+      duelPicks = p ? [p.id] : [];
+      duelMode = 'net';
+      groupBack = { s: 'list', a: id };
+      C.go('groupSetup');
+    },
+    groupBack() { const b = groupBack; b ? C.go(b.s, b.a) : C.go('camp'); },
     brainToggle(id) {
       const cur = brainChoice();
       if (id === 'all') brainPicks = cur.length === Brain.GAMES.length ? [] : allBrain();
@@ -1455,7 +1472,8 @@ const Group = (() => {
     brainInvite() {
       const p = Store.current();
       duelKind = 'brain';
-      duelLand = p.world || 'ar';
+      duelLand = brainList() || p.world || 'ar';
+      groupBack = { s: 'brainSetup', a: null };
       duelPicks = [p.id];
       C.go('groupSetup');
     },
