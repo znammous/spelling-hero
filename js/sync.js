@@ -289,7 +289,8 @@ const Sync = (() => {
       synced: () => !duelMeta.pending && !duelMeta.cache,
       refresh: duelRefresh,
       on: fn => duelListeners.push(fn),
-      set: obj => duelRef ? fb.fs.setDoc(duelRef, obj) : Promise.reject(new Error('signed out')),
+      set: (obj, opts) => duelRef ? fb.fs.setDoc(duelRef, obj, opts || {}) : Promise.reject(new Error('signed out')),
+      del: () => fb.fs.deleteField(),
       update: obj => duelRef ? fb.fs.updateDoc(duelRef, obj) : Promise.reject(new Error('signed out')),
     },
     online: {

@@ -47,6 +47,7 @@ const Group = (() => {
     } catch (e) { return Math.random().toString(36).slice(2, 10); }
   })();
   const myPath = `players.${DEVICE}`;
+  let joinId = '';
   const kid = id => Store.state.profiles.find(p => p.id === id);
 
   // ───── الخطط والقوائم ─────
@@ -136,8 +137,8 @@ const Group = (() => {
     },
 
     netWait(role) {
-      const d = Sync.duel.data();
-      const players = d && netPending && d.id === netPending.id ? activePlayers(d) : [];
+      const d = netPending && gameOf(netPending.id);
+      const players = d ? activePlayers(d) : [];
       const host = role === 'host';
       const K = kindOf(d || { kind: duelKind });
       const synced = Sync.duel.synced();
@@ -157,6 +158,7 @@ const Group = (() => {
     },
 
     netJoin(d) {
+      joinId = d.id;
       const taken = activePlayers(d);
       const avail = Store.state.profiles.filter(p => !taken.some(x => x.pid === p.id));
       const me = avail.find(p => p.id === Store.state.current);
@@ -440,7 +442,7 @@ const Group = (() => {
       clearTimeout(duel.net.waitT);
       clearTimeout(duel.net.pushT);
       clearInterval(duel.net.pollT);
-      if (!duel.net.finished) Sync.duel.update({ [`${myPath}.left`]: true }).catch(() => {});
+      if (!duel.net.finished) put(duel.net.id, { [`${myPath}.left`]: true }).catch(() => {});
     }
     clearInterval(duel.timer);
     duel.timeouts.forEach(clearTimeout);
@@ -663,6 +665,13 @@ const Group = (() => {
   const inviteFor = d => !!(d && d.state === 'waiting' && d.players && d.host !== DEVICE && d.players[d.host] &&
     !activePlayers(d).some(x => x.device === DEVICE) && activePlayers(d).length < kindOf(d).max && Date.now() - d.createdAt < INVITE_MS);
   const othersDone = n => n.opps.every(o => o.done || o.left);
+  // مستند واحد للعائلة يحمل كل التحديات معاً في g.{معرّف التحدي}، حتى لا تمسح دعوةٌ جديدة تحدياً جارياً
+  const allGames = () => ((Sync.duel.data() || {}).g) || {};
+  const gameOf = id => (id && allGames()[id]) || null;
+  const put = (id, obj) => Sync.duel.update(Object.fromEntries(Object.entries(obj).map(([k, v]) => [`g.${id}.${k}`, v])));
+  const inviteGame = skip => Object.values(allGames()).filter(d => inviteFor(d) && d.id !== skip).sort((a, b) => b.createdAt - a.createdAt)[0] || null;
+  const OLD_GAME_MS = 3 * 3600 * 1000;
+  const LEGACY_KEYS = ['id', 'kind', 'world', 'landName', 'games', 'words', 'state', 'createdAt', 'host', 'players'];
   // كل الأجهزة تكتب في مستند واحد، والخادم لا يحتمل أكثر من كتابة تقريباً في الثانية للمستند،
   // فإن أكثرنا تراكمت الكتابات وتأخرت نتائج المنافسين حتى تُحسب «انقطع اتصاله»
   const PUSH_MS = { race: 1200, brain: 3000 };
@@ -680,7 +689,12 @@ const Group = (() => {
     C.nav.cur = 'netWait';
     Screens.netWait('host');
     const games = kind === 'brain' ? Brain.pickGames(brainChoice()) : null;
-    Sync.duel.set({ id, kind, world: duelLand, landName: landName(duelLand), ...(games ? { games } : {}), ...(list ? { words: list.words } : {}), state: 'waiting', createdAt: Date.now(), host: DEVICE, players: { [DEVICE]: netPlayer(p) } })
+    const game = { id, kind, world: duelLand, landName: landName(duelLand), ...(games ? { games } : {}), ...(list ? { words: list.words } : {}), state: 'waiting', createdAt: Date.now(), host: DEVICE, players: { [DEVICE]: netPlayer(p) } };
+    // نضيف التحدي بجانب الجارية، ونحذف القديمة وحقول الصيغة السابقة (تحدٍّ واحد في جذر المستند)
+    const g = { [id]: game };
+    Object.values(allGames()).forEach(x => { if (!(Date.now() - x.createdAt < OLD_GAME_MS)) g[x.id] = Sync.duel.del(); });
+    const legacy = Object.fromEntries(LEGACY_KEYS.filter(k => k in (Sync.duel.data() || {})).map(k => [k, Sync.duel.del()]));
+    Sync.duel.set({ ...legacy, g }, { merge: true })
       .catch(() => {
         netPending = null;
         C.toast('⚠️ تعذّر إرسال الدعوة. تأكد من الإنترنت وتسجيل الدخول.', 5000);
@@ -688,7 +702,7 @@ const Group = (() => {
       });
   }
   function netJoin(pid) {
-    const d = Sync.duel.data();
+    const d = gameOf(joinId);
     const p = kid(pid);
     if (!p || !inviteFor(d)) { C.toast('انتهت الدعوة أو اكتمل العدد'); C.go('camp'); return; }
     duelLand = d.world || 'ar';
@@ -696,21 +710,21 @@ const Group = (() => {
     netPending = { id: d.id, role: 'guest', pid, words: d.words || null };
     C.nav.cur = 'netWait';
     Screens.netWait('guest');
-    Sync.duel.update({ [myPath]: netPlayer(p) }).catch(() => {
+    put(d.id, { [myPath]: netPlayer(p) }).catch(() => {
       netPending = null;
       C.toast('⚠️ تعذّر الانضمام. تأكد من الإنترنت.', 5000);
       C.go('camp');
     });
   }
   function netStart() {
-    const d = Sync.duel.data();
-    if (!netPending || netPending.role !== 'host' || !d || d.id !== netPending.id || activePlayers(d).length < 2) return;
-    Sync.duel.update({ state: 'running' }).catch(() => {});
+    const d = netPending && gameOf(netPending.id);
+    if (!netPending || netPending.role !== 'host' || !d || activePlayers(d).length < 2) return;
+    put(d.id, { state: 'running' }).catch(() => {});
     d.kind === 'brain' ? startNetBrain(d) : startNetDuel(d);
   }
   function netShare() {
-    const d = Sync.duel.data();
-    if (!netPending || !d || d.id !== netPending.id) return;
+    const d = netPending && gameOf(netPending.id);
+    if (!d) return;
     const K = kindOf(d);
     const url = `${location.origin}${location.pathname}#duel=${d.id}`;
     const text = `${K.icon} ${d.players[d.host].name} يدعوك ${K.invite} في أبطال الإملاء!`;
@@ -720,7 +734,7 @@ const Group = (() => {
   }
   function netCancel() {
     if (netPending) {
-      Sync.duel.update(netPending.role === 'host' ? { state: 'cancelled' } : { [`${myPath}.left`]: true }).catch(() => {});
+      put(netPending.id, netPending.role === 'host' ? { state: 'cancelled' } : { [`${myPath}.left`]: true }).catch(() => {});
       netPending = null;
     }
     C.go('groupSetup');
@@ -744,7 +758,7 @@ const Group = (() => {
       n.pushT = null;
       const data = { [`${myPath}.right`]: s.right, [`${myPath}.reachedMs`]: s.reachedAt ? Math.round(s.reachedAt - t0) : 0 };
       if (final) data[`${myPath}.done`] = true;
-      Sync.duel.update(data).catch(() => {});
+      put(n.id, data).catch(() => {});
     };
     if (final) { clearTimeout(n.pushT); send(); return; }
     if (!n.pushT) n.pushT = setTimeout(send, PUSH_MS.race);
@@ -791,8 +805,8 @@ const Group = (() => {
 
   // ───── من المتصل الآن والدعوات ─────
   const onlineOthers = () => {
-    const d = netPending && Sync.duel.data();
-    const seen = new Set(d && d.id === netPending.id ? activePlayers(d).map(x => x.pid) : []);
+    const d = netPending && gameOf(netPending.id);
+    const seen = new Set(d ? activePlayers(d).map(x => x.pid) : []);
     return Object.entries(Sync.online.data())
       .filter(([dev, x]) => dev !== DEVICE && x && x.at && Date.now() - x.at < ONLINE_MS)
       .map(([, x]) => x).sort((a, b) => b.at - a.at)
@@ -822,27 +836,28 @@ const Group = (() => {
   }
   const inviteBar = document.createElement('div');
   let inviteTimer;
-  function showInvite(d) {
-    const ok = inviteFor(d) && !busy() && inviteBar.dataset.dismissed !== d.id;
+  function showInvite() {
+    const d = inviteGame(inviteBar.dataset.dismissed);
+    const ok = !!d && !busy();
     inviteBar.hidden = !ok;
     clearTimeout(inviteTimer);
     if (!ok) return;
+    inviteBar.dataset.id = d.id;
     const host = d.players[d.host];
     const K = kindOf(d);
     inviteBar.innerHTML = `<span>${K.icon} ${host.avatar} <b>${C.esc(host.name)}</b> يدعوك ${K.invite}!</span>
       <button class="btn gold small" data-invite="join">انضم</button>
       <button class="chip dark" data-invite="no" aria-label="تجاهل">✕</button>`;
-    inviteTimer = setTimeout(() => showInvite(Sync.duel.data()), d.createdAt + INVITE_MS - Date.now());
+    inviteTimer = setTimeout(showInvite, d.createdAt + INVITE_MS - Date.now());
   }
   let linkDuel = '', linkTimer;
-  function openLinkDuel(d) {
-    if (!linkDuel || !d || busy()) return;
-    if (d.id !== linkDuel && Date.now() - d.createdAt > INVITE_MS) return;
-    const id = linkDuel;
+  function openLinkDuel() {
+    const d = gameOf(linkDuel);
+    if (!d || busy()) return;
     linkDuel = '';
     clearTimeout(linkTimer);
-    if (d.id === id && d.host === DEVICE) return;
-    if (d.id === id && inviteFor(d)) { inviteBar.hidden = true; Screens.netJoin(d); }
+    if (d.host === DEVICE) return;
+    if (inviteFor(d)) { inviteBar.hidden = true; Screens.netJoin(d); }
     else C.toast('انتهت الدعوة أو اكتمل العدد', 3500);
   }
   function fromHash() {
@@ -862,15 +877,17 @@ const Group = (() => {
       linkDuel = '';
       C.toast(Sync.duel.ready() ? 'انتهت الدعوة' : '⚠️ افتح الرابط على جهاز مرتبط بحساب العائلة ومتصل بالإنترنت', 5000);
     }, 15000);
-    openLinkDuel(Sync.duel.data());
+    openLinkDuel();
     return true;
   }
-  function onDuelDoc(d) {
-    showInvite(d);
-    openLinkDuel(d);
+  function onDuelDoc() {
+    showInvite();
+    openLinkDuel();
+    let d;
     if (netPending) {
       if (!document.querySelector('.net-wait')) { netPending = null; return; }
-      if (!d || d.id !== netPending.id) return;
+      d = gameOf(netPending.id);
+      if (!d) return;
       if (d.state === 'cancelled') { netPending = null; C.toast('أُلغيت الدعوة'); C.go('camp'); return; }
       if (d.state === 'running') {
         if (activePlayers(d).some(x => x.device === DEVICE)) d.kind === 'brain' ? startNetBrain(d) : startNetDuel(d);
@@ -882,13 +899,13 @@ const Group = (() => {
       if (netPending.role === 'guest' && Sync.duel.synced() && (!me || me.left) && !(netPending.retryAt > Date.now() - 5000)) {
         const p = kid(netPending.pid);
         netPending.retryAt = Date.now();
-        if (p) Sync.duel.update({ [myPath]: netPlayer(p) }).catch(() => {});
+        if (p) put(d.id, { [myPath]: netPlayer(p) }).catch(() => {});
       }
       Screens.netWait(netPending.role);
       return;
     }
-    if (brain && brain.net && d && d.id === brain.net.id) { netBrainUpdate(d); return; }
-    if (!duel || !duel.net || !d || d.id !== duel.net.id) return;
+    if (brain && brain.net) { d = gameOf(brain.net.id); if (d) netBrainUpdate(d); return; }
+    if (!duel || !duel.net || !(d = gameOf(duel.net.id))) return;
     const n = duel.net;
     n.opps.forEach((o, j) => {
       const x = d.players && d.players[o.device];
@@ -924,7 +941,7 @@ const Group = (() => {
       clearTimeout(brain.net.waitT);
       clearTimeout(brain.net.pushT);
       clearInterval(brain.net.pollT);
-      if (!brain.net.finished) Sync.duel.update({ [`${myPath}.left`]: true }).catch(() => {});
+      if (!brain.net.finished) put(brain.net.id, { [`${myPath}.left`]: true }).catch(() => {});
     }
     clearInterval(brain.timer);
     brain.timeouts.forEach(clearTimeout);
@@ -1228,7 +1245,7 @@ const Group = (() => {
       n.pushT = null;
       const data = { [`${myPath}.brain`]: s.games.map(g => g.right), [`${myPath}.brainW`]: s.games.map(g => g.wrong), [`${myPath}.g`]: Math.min(b.g, b.ids.length - 1) };
       if (final) data[`${myPath}.done`] = true;
-      Sync.duel.update(data).catch(() => {});
+      put(n.id, data).catch(() => {});
     };
     if (final) { clearTimeout(n.pushT); send(); return; }
     if (!n.pushT) n.pushT = setTimeout(send, PUSH_MS.brain);
@@ -1539,7 +1556,7 @@ const Group = (() => {
     inviteBar.hidden = true;
     document.body.appendChild(inviteBar);
     inviteBar.addEventListener('click', e => {
-      const d = Sync.duel.data();
+      const d = gameOf(inviteBar.dataset.id);
       if (e.target.closest('[data-invite=join]') && inviteFor(d)) { inviteBar.hidden = true; C.nav.cur = 'netJoin'; Screens.netJoin(d); }
       else if (e.target.closest('[data-invite=no]')) { inviteBar.dataset.dismissed = d ? d.id : ''; inviteBar.hidden = true; }
     });
