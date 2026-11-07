@@ -1314,12 +1314,13 @@ const Group = (() => {
   // ───── ربط الأجهزة ─────
   function pairBox() {
     const k = kid(pairing.kid);
-    const who = k ? `${k.avatar} ${C.esc(k.name)}` : 'الجهاز المشترك';
+    const g = pairing.kid.startsWith('A|');
+    const who = g ? `👑 ${C.esc(pairing.kid.slice(2))}` : k ? `${k.avatar} ${C.esc(k.name)}` : 'الجهاز المشترك';
     const qr = qrcode(0, 'M');
     qr.addData(`${location.origin}${location.pathname}#join=${pairing.code}`);
     qr.make();
     return `<div class="pair-box ${pairing.ready ? '' : 'pending'}">
-      <p>على جهاز ${who}: افتح اللعبة ← «جهاز طفل؟ انضم برمز» ثم امسح الرمز أو اكتبه</p>
+      <p>على جهاز ${who}: افتح اللعبة ← «انضم برمز» ثم امسح الرمز أو اكتبه${g ? '. سيصبح ولي أمر يرى اللوحة ويضيف الأجهزة، والرمز لمرة واحدة.' : ''}</p>
       <div class="qr">${qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true })}</div>
       <b class="pair-code" dir="ltr">${pairing.code.slice(0, 4)}-${pairing.code.slice(4)}</b>
       <small class="muted">${pairing.ready ? '✅ جاهز · صالح لعشر دقائق' : '⏳ جارٍ تفعيل الرمز…'}</small>
@@ -1327,15 +1328,20 @@ const Group = (() => {
     </div>`;
   }
   function devicesBox() {
-    const who = id => { const k = kid(id); return k ? `${k.avatar} ${C.esc(k.name)}` : '👨‍👩‍👧 مشترك'; };
+    const gs = Sync.guardians();
+    const who = d => {
+      if (gs[d.id] !== undefined) return `👑 ${C.esc(gs[d.id] || 'ولي أمر')}`;
+      const k = kid(d.kid); return k ? `${k.avatar} ${C.esc(k.name)}` : '👨‍👩‍👧 مشترك';
+    };
     const list = Sync.devices();
     const rows = list.length
-      ? list.map(d => `<div class="switchrow"><span>${who(d.kid)} <small class="muted">· ${C.esc(d.name || 'جهاز')}</small></span><button class="mini" data-act="removeDevice" data-arg="${d.id}">فصل</button></div>`).join('')
+      ? list.map(d => `<div class="switchrow"><span>${who(d)} <small class="muted">· ${C.esc(d.name || 'جهاز')}${d.id === Sync.uid() ? ' (هذا الجهاز)' : ''}</small></span><button class="mini" data-act="removeDevice" data-arg="${d.id}">فصل</button></div>`).join('')
       : '<p class="muted">لا توجد أجهزة أطفال مرتبطة بعد.</p>';
     const add = pairing && pairing.exp > Date.now() ? pairBox()
       : `<p class="lbl">➕ أضف جهازاً لـ</p><div class="chips">${Store.state.profiles.map(k => `<button class="land-chip" data-act="pairDevice" data-arg="${k.id}">${k.avatar} ${C.esc(k.name)}</button>`).join('')}
-        <button class="land-chip" data-act="pairDevice" data-arg="">👨‍👩‍👧 جهاز مشترك</button></div>`;
-    return `<h3 class="sub-h">📱 أجهزة الأطفال</h3>${rows}${add}`;
+        <button class="land-chip" data-act="pairDevice" data-arg="">👨‍👩‍👧 جهاز مشترك</button>
+        <button class="land-chip" data-act="pairGuardian">👑 ولي أمر آخر</button></div>`;
+    return `<h3 class="sub-h">📱 أجهزة العائلة</h3>${rows}${add}`;
   }
   function syncCard() {
     const st = Sync.status();
@@ -1349,6 +1355,8 @@ const Group = (() => {
       const label = { syncing: '⏳ جارٍ المزامنة…', offline: '📴 بدون اتصال — تُرفع التعديلات عند عودة الإنترنت', ok: `✅ متزامن${when ? ` · آخر مزامنة ${when}` : ''}`, error: '⚠️ تعذّرت المزامنة' }[st] || '';
       body = Sync.role() === 'device'
         ? `<p>${label}</p><p class="muted">📱 هذا الجهاز مرتبط بحساب العائلة برمز من ولي الأمر.</p>${ownerBox()}<button class="link-btn dark" data-act="syncOut">فصل هذا الجهاز عن العائلة</button>`
+        : Sync.guardian()
+        ? `<p>${label}</p><p class="muted">👑 هذا الجهاز لولي أمر انضم برمز، وله ما لولي الأمر.</p>${devicesBox()}<button class="link-btn dark" data-act="syncOut">فصل هذا الجهاز عن العائلة</button>`
         : `<p>${label}</p><p class="muted" dir="ltr">${C.esc(Sync.email())}</p>${devicesBox()}<button class="link-btn dark" data-act="syncOut">تسجيل الخروج من هذا الجهاز</button>`;
     }
     return `<div class="card" id="syncCard"><h2>☁️ المزامنة بين الأجهزة</h2>${body}</div>`;
@@ -1410,7 +1418,7 @@ const Group = (() => {
       pendingKid = k || null;
       Store.state.owner = k || '';
       Store.save();
-      C.toast('✅ انضم الجهاز إلى العائلة');
+      C.toast(Sync.guardian() ? '✅ انضممت إلى العائلة كولي أمر 👑' : '✅ انضم الجهاز إلى العائلة');
       applyPendingKid();
       C.go('profiles', null, true);
     }).catch(e => {
@@ -1521,7 +1529,7 @@ const Group = (() => {
     },
     syncIn() { Sync.signIn().catch(e => { if (e.code !== 'auth/popup-closed-by-user') C.toast('تعذّر تسجيل الدخول'); }); },
     syncOut() {
-      const device = Sync.role() === 'device';
+      const device = Sync.role() === 'device' || Sync.guardian();
       C.ask(device ? 'فصل هذا الجهاز؟' : 'تسجيل الخروج؟', 'يبقى التقدّم محفوظاً على هذا الجهاز لكن لن يُزامَن.', 'تأكيد', true).then(ok => { if (ok) Sync.signOut(); });
     },
     pairDevice(k) {
@@ -1532,6 +1540,12 @@ const Group = (() => {
       ready.then(() => { if (mine()) { pairing.ready = true; refreshSync(); } })
         .catch(() => { if (mine()) { pairing = null; refreshSync(); C.toast('⚠️ تعذّر إنشاء الرمز. تأكد من الإنترنت.'); } });
       setTimeout(() => { if (mine()) { pairing = null; refreshSync(); } }, exp - Date.now() + 500);
+    },
+    // رمز لولي أمر آخر (الأب أو الأم) ينضم بجهازه فيصبح له ما لولي الأمر
+    pairGuardian() {
+      const name = prompt('اسم ولي الأمر الذي سينضم (مثل: أم محمد)', '');
+      if (name === null) return;
+      Actions.pairDevice('A|' + ([...name.trim()].slice(0, 30).join('') || 'ولي الأمر'));
     },
     cancelPair() { pairing = null; refreshSync(); },
     setOwner(id) { Store.state.owner = id || ''; Store.save(); refreshSync(); },

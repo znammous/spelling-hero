@@ -158,7 +158,7 @@
         <div class="avatars">${list.map(p => `<button class="avatar-card" style="--c:${kidColor(p)}" data-act="enter" data-arg="${p.id}">
           <span class="face">${p.avatar}</span><b>${esc(p.name)}</b></button>`).join('')}</div>` : ''}
         <button class="btn gold wide" data-act="newProfile">➕ ${list.length ? 'بطل جديد' : 'أنشئ بطلك وابدأ'}</button>
-        ${Sync.role() === 'device' ? '' : '<button class="btn soft wide" data-act="go" data-arg="join">📱 جهاز طفل؟ انضم برمز من ولي الأمر</button>'}
+        ${Sync.role() === 'device' || Sync.guardian() ? '' : '<button class="btn soft wide" data-act="go" data-arg="join">📱 جهاز طفل أو ولي أمر آخر؟ انضم برمز</button>'}
         <button class="link-btn" data-act="openParent">👨‍👩‍👧 ولي الأمر</button>
         <button class="link-btn" data-act="appUpdate">🔄 تحديث التطبيق</button>
       </section>`);
