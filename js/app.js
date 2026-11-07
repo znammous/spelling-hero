@@ -600,12 +600,7 @@
       <div class="card"><h2>🎯 كلمات تحتاج تدريباً</h2>
         ${hard.length ? `<div class="chips">${hard.map(w => `<span class="w-chip" dir="${wdir(w)}">${wordHTML(w)}</span>`).join('')}</div>` : '<p class="muted">لا توجد كلمات صعبة حتى الآن 👏</p>'}
       </div>
-      <div class="card"><h2>🔑 رمز دخول ${esc(k.name)}</h2>
-        <p class="muted">${k.pin ? `الرمز الحالي: ${ltr(kidPinShown ? k.pin : '••••')}` : 'لم يُختر بعد: سيختاره عند دخوله أول مرة.'}
-          ${k.pin ? `<button class="link-btn dark" data-act="toggleKidPin">${kidPinShown ? '🙈 إخفاء' : '👁️ إظهار'}</button>` : ''}</p>
-        <div class="row"><input id="kidPinInput" type="tel" inputmode="numeric" maxlength="4" autocomplete="off" dir="ltr" placeholder="رمز جديد من 4 أرقام">
-          <button class="btn soft" data-act="setKidPin">حفظ</button></div>
-      </div>
+      ${kidPinCard(k)}
       <button class="btn red wide" data-act="deleteKid" data-arg="${k.id}">🗑️ حذف ملف ${esc(k.name)}</button>`;
   }
 
@@ -1359,8 +1354,9 @@
     leaveParent() { parentOK = false; go(Store.current() ? 'camp' : 'profiles'); },
     parentTab(t) { parentTab = t; Screens.parent(); },
     parentKid(id) { parentKid = id; kidPinShown = false; Screens.parent(); },
-    toggleKidPin() { kidPinShown = !kidPinShown; Screens.parent(); },
+    toggleKidPin() { if (Sync.role() === 'device') return; kidPinShown = !kidPinShown; Screens.parent(); },
     setKidPin() {
+      if (Sync.role() === 'device') return;
       const k = Store.state.profiles.find(x => x.id === parentKid);
       const v = ($('kidPinInput').value || '').trim();
       if (!k) return;
@@ -1446,6 +1442,19 @@
     const [t, h] = String(s).split('=');
     const word = (t || '').trim();
     return word ? [{ t: word, h: (h || '').trim() }] : [];
+  }
+  // رموز الأبطال يراها ويغيّرها ولي الأمر من جهازه فقط، لا من جهاز طفل انضم برمز
+  function kidPinCard(k) {
+    if (Sync.role() === 'device') {
+      return `<div class="card"><h2>🔑 رمز دخول ${esc(k.name)}</h2><p class="muted">تُعرض رموز الأبطال وتُغيَّر من جهاز ولي الأمر.</p></div>`;
+    }
+    return `<div class="card"><h2>🔑 رمز دخول ${esc(k.name)}</h2>
+        <p class="muted">${k.pin ? `الرمز الحالي: ${ltr(kidPinShown ? k.pin : '••••')}` : 'لم يُختر بعد: سيختاره عند دخوله أول مرة، أو حدّده الآن.'}
+          ${k.pin ? `<button class="link-btn dark" data-act="toggleKidPin">${kidPinShown ? '🙈 إخفاء' : '👁️ إظهار'}</button>` : ''}</p>
+        <div class="row"><input id="kidPinInput" type="tel" inputmode="numeric" maxlength="4" autocomplete="off" dir="ltr" placeholder="رمز جديد من 4 أرقام">
+          <button class="btn soft" data-act="setKidPin">حفظ</button></div>
+        ${Store.state.pin ? '' : '<p class="note">⚠️ لوحة ولي الأمر بلا رمز، فيستطيع الأطفال فتحها ورؤية رموز إخوتهم. أنشئ رمزاً لها من تبويب «الإعدادات».</p>'}
+      </div>`;
   }
   function enterKid(id) { Store.state.current = id; Store.save(); Sound.play('open'); go('camp'); }
   // رمز البطل: الدخول به، أو اختياره أول مرة ثم تأكيده
