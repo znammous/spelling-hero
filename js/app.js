@@ -175,6 +175,7 @@
           <div class="avatar-grid">${AVATARS.map(a => `<button class="avatar-btn ${a === newAvatar ? 'selected' : ''}" data-act="pickAvatar" data-arg="${a}">${a}</button>`).join('')}</div>
           ${World.lookPicker(newLook)}
           <button class="btn pink wide" data-act="${p ? 'saveProfile' : 'createProfile'}">${p ? '✅ حفظ' : '🚀 هيا نبدأ'}</button>
+          ${p ? `<button class="btn soft wide" data-act="changeKidPin">🔑 ${p.pin ? 'تغيير رمزي السري' : 'اختر رمزاً سرياً'}</button>` : ''}
         </div>
       </section>`);
     },
@@ -1133,6 +1134,13 @@
       pinState = { stage: p.pin ? 'enter' : 'new', buf: '', kid: id };
       pinModal();
     },
+    // البطل يغيّر رمزه بنفسه: الرمز الحالي أولاً ثم الجديد مرتين
+    changeKidPin() {
+      const p = Store.current();
+      if (!p) return;
+      pinState = { stage: p.pin ? 'old' : 'new', buf: '', kid: p.id, change: true };
+      pinModal();
+    },
     switchKid() { Store.state.current = null; Store.save(); go('profiles'); },
     beginFree() { go('free'); },
     beginWorld(id) { Store.current().world = id; Store.save(); go('map', id); },
@@ -1354,9 +1362,8 @@
     leaveParent() { parentOK = false; go(Store.current() ? 'camp' : 'profiles'); },
     parentTab(t) { parentTab = t; Screens.parent(); },
     parentKid(id) { parentKid = id; kidPinShown = false; Screens.parent(); },
-    toggleKidPin() { if (Sync.role() === 'device') return; kidPinShown = !kidPinShown; Screens.parent(); },
+    toggleKidPin() { kidPinShown = !kidPinShown; Screens.parent(); },
     setKidPin() {
-      if (Sync.role() === 'device') return;
       const k = Store.state.profiles.find(x => x.id === parentKid);
       const v = ($('kidPinInput').value || '').trim();
       if (!k) return;
@@ -1443,11 +1450,8 @@
     const word = (t || '').trim();
     return word ? [{ t: word, h: (h || '').trim() }] : [];
   }
-  // رموز الأبطال يراها ويغيّرها ولي الأمر من جهازه فقط، لا من جهاز طفل انضم برمز
+  // رمز البطل في لوحة ولي الأمر: يراه ويغيّره (والبطل يغيّره بنفسه من «تعديل بطلك»)
   function kidPinCard(k) {
-    if (Sync.role() === 'device') {
-      return `<div class="card"><h2>🔑 رمز دخول ${esc(k.name)}</h2><p class="muted">تُعرض رموز الأبطال وتُغيَّر من جهاز ولي الأمر.</p></div>`;
-    }
     return `<div class="card"><h2>🔑 رمز دخول ${esc(k.name)}</h2>
         <p class="muted">${k.pin ? `الرمز الحالي: ${ltr(kidPinShown ? k.pin : '••••')}` : 'لم يُختر بعد: سيختاره عند دخوله أول مرة، أو حدّده الآن.'}
           ${k.pin ? `<button class="link-btn dark" data-act="toggleKidPin">${kidPinShown ? '🙈 إخفاء' : '👁️ إظهار'}</button>` : ''}</p>
@@ -1461,23 +1465,30 @@
   function kidPinKey(v) {
     const p = Store.state.profiles.find(x => x.id === pinState.kid);
     if (!p) { closeModal(); pinState = null; return; }
-    if (pinState.stage === 'enter') {
+    const change = !!pinState.change;
+    if (pinState.stage === 'old') {
+      if (v === p.pin) { pinState = { stage: 'new', buf: '', kid: p.id, change }; pinModal(); return; }
+      pinState.buf = '';
+      Sound.play('wrong');
+      $('pinTitle').textContent = '❌ رمز غير صحيح';
+      pinDots();
+    } else if (pinState.stage === 'enter') {
       if (v === p.pin) { closeModal(); pinState = null; enterKid(p.id); return; }
       pinState.buf = '';
       Sound.play('wrong');
       $('pinTitle').textContent = '❌ رمز غير صحيح';
       pinDots();
     } else if (pinState.stage === 'new') {
-      pinState = { stage: 'confirm', first: v, buf: '', kid: p.id };
+      pinState = { stage: 'confirm', first: v, buf: '', kid: p.id, change };
       pinModal();
     } else if (v === pinState.first) {
       p.pin = v;
       closeModal();
       pinState = null;
       toast('🔑 حُفظ رمزك، تذكّره جيداً', 3000);
-      enterKid(p.id);
+      if (change) { Store.save(); redraw(); } else enterKid(p.id);
     } else {
-      pinState = { stage: 'new', buf: '', kid: p.id };
+      pinState = { stage: 'new', buf: '', kid: p.id, change };
       pinModal();
       $('pinTitle').textContent = '❌ لم يتطابق الرمز. أعد المحاولة';
     }
@@ -1485,7 +1496,7 @@
   function pinModal() {
     const k = pinState.kid && Store.state.profiles.find(x => x.id === pinState.kid);
     const titles = k
-      ? { enter: `${k.avatar} أدخل رمز ${esc(k.name)} السري`, new: `${k.avatar} اختر رمزاً سرياً من 4 أرقام يحمي ملف ${esc(k.name)} 🔒`, confirm: 'أعد إدخال الرمز للتأكيد' }
+      ? { old: `${k.avatar} أدخل رمزك الحالي`, enter: `${k.avatar} أدخل رمز ${esc(k.name)} السري`, new: `${k.avatar} اختر رمزاً سرياً من 4 أرقام يحمي ملف ${esc(k.name)} 🔒`, confirm: 'أعد إدخال الرمز للتأكيد' }
       : { enter: 'أدخل رمز ولي الأمر', new: 'اختر رمزاً من 4 أرقام', confirm: 'أعد إدخال الرمز' };
     showModal(`<h2 id="pinTitle">${titles[pinState.stage]}</h2>
       <div class="pin-dots" id="pinDots"></div>
@@ -1495,7 +1506,7 @@
         <button class="key" data-act="pinKey" data-arg="0">0</button>
         <button class="key util" data-act="pinCancel">✕</button>
       </div>
-      ${pinState.stage === 'enter' ? '<button class="link-btn dark" data-act="forgotPin">نسيت الرمز</button>' : ''}`);
+      ${pinState.stage === 'enter' || pinState.stage === 'old' ? '<button class="link-btn dark" data-act="forgotPin">نسيت الرمز</button>' : ''}`);
     pinDots();
   }
   function pinDots() {
