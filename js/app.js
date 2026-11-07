@@ -1362,7 +1362,7 @@
     leaveParent() { parentOK = false; kidPinShown = ''; go(Store.current() ? 'camp' : 'profiles'); },
     parentTab(t) { parentTab = t; kidPinShown = ''; Screens.parent(); },
     parentKid(id) { parentKid = id; Screens.parent(); },
-    toggleKidPin(id) { kidPinShown = kidPinShown === id ? '' : id; Screens.parent(); },
+    toggleKidPin(id) { kidPinShown = kidPinShown === id ? '' : id; parentInPlace(); },
     setKidPin(id) {
       const k = Store.state.profiles.find(x => x.id === id);
       const v = ($('kidPin-' + id).value || '').trim();
@@ -1372,7 +1372,7 @@
       Store.save();
       kidPinShown = id;
       toast(`🔑 الرمز الجديد لـ${k.name}: ${v}`, 3500);
-      Screens.parent();
+      parentInPlace();
     },
     unlockAll(w) {
       const k = Store.state.profiles.find(x => x.id === parentKid);
@@ -1466,6 +1466,12 @@
       </div>`).join('')}
       ${Store.state.pin ? '' : '<p class="note">⚠️ لوحة ولي الأمر بلا رمز، فيستطيع الأطفال فتحها ورؤية رموز إخوتهم. أنشئ رمزاً لها من بطاقة «رمز ولي الأمر» أعلاه.</p>'}
     </div>`;
+  }
+  // إعادة رسم لوحة ولي الأمر دون القفز إلى أعلى الصفحة
+  function parentInPlace() {
+    const y = window.scrollY;
+    Screens.parent();
+    window.scrollTo(0, y);
   }
   function enterKid(id) { Store.state.current = id; Store.save(); Sound.play('open'); go('camp'); }
   // رمز البطل: الدخول به، أو اختياره أول مرة ثم تأكيده

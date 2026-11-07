@@ -113,7 +113,7 @@ button.chip:active { background: rgba(255, 255, 255, .28); }
 .mini { font-size: .92rem; font-weight: 700; padding: 6px 12px; border-radius: 12px; background: var(--primary); color: #fff; box-shadow: 0 3px 0 var(--primary-dark); margin-top: 4px; }
 .mini:disabled { background: var(--line); color: var(--muted); box-shadow: 0 3px 0 #d9c2dc; }
 .mini:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--primary-dark); }
-input[type=text], select, textarea { width: 100%; font-size: 1.1rem; padding: 11px 13px; outline: none; border: 3px solid var(--line); border-radius: 14px; background: #fff; color: var(--ink); }
+input[type=text], input[type=tel], select, textarea { width: 100%; font-size: 1.1rem; padding: 11px 13px; outline: none; border: 3px solid var(--line); border-radius: 14px; background: #fff; color: var(--ink); }
 input:focus, select:focus, textarea:focus { border-color: var(--primary); }
 .lbl, .label { display: block; font-weight: 700; font-size: 1rem; color: var(--deep); margin: 10px 0 5px; }
 .bar { display: block; height: 14px; background: var(--line); border-radius: 99px; overflow: hidden; width: 100%; }
@@ -603,3 +603,5 @@ input[type=checkbox] { width: 24px; height: 24px; flex-shrink: 0; accent-color: 
 .kid-pin-row .row { align-items: center; }
 .kid-pin-row .row > input { flex: 1; min-width: 0; }
 .kid-pin-row .row > .btn { flex: 0 0 auto; padding: 10px 22px; }
+.kid-pin-row .row > input { text-align: center; letter-spacing: .3em; }
+.kid-pin-row .row > input::placeholder { letter-spacing: 0; }
