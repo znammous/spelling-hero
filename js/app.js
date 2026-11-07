@@ -16,13 +16,14 @@
     const clusters = Engine.voweled(w).replace(/\s+/g, '').match(/[^\u064B-\u0652\u0670\u0640][\u064B-\u0652\u0670\u0640]*/g);
     return `<span>${clusters.map((c, i) => (i === at ? '<b class="blank">؟</b>' : lightMarks(c))).join('')}</span>`;
   };
-  const kidColor = p => KID_COLORS[Store.state.profiles.indexOf(p) % KID_COLORS.length];
+  const kidColor = p => p.color || KID_COLORS[Math.max(0, Store.state.profiles.indexOf(p)) % KID_COLORS.length];
 
   let round = null;       // الجولة الجارية
   let lastRound = null;   // لإعادة نفس الجولة من شاشة النتائج
   let lastResult = null;  // نتيجة آخر جولة: للشهادة وتدريب الأخطاء
   let newAvatar = AVATARS[0];
   let newLook = World.CUTE;
+  let newColor = KID_COLORS[0];
   let parentOK = false;   // فُتحت لوحة ولي الأمر بالرمز في هذه الزيارة
   let listEditing = null;  // القائمة المفتوحة للتعديل
   let kidPinShown = '';    // البطل الذي أظهر ولي الأمر رمزه
@@ -159,12 +160,13 @@
         <button class="btn gold wide" data-act="newProfile">➕ ${list.length ? 'بطل جديد' : 'أنشئ بطلك وابدأ'}</button>
         ${Sync.role() === 'device' ? '' : '<button class="btn soft wide" data-act="go" data-arg="join">📱 جهاز طفل؟ انضم برمز من ولي الأمر</button>'}
         <button class="link-btn" data-act="openParent">👨‍👩‍👧 ولي الأمر</button>
+        <button class="link-btn" data-act="appUpdate">🔄 تحديث التطبيق</button>
       </section>`);
     },
 
     newProfile(edit) {
       const p = edit ? Store.current() : null;
-      if (p) { newAvatar = p.avatar; newLook = World.lookOf(p); }
+      if (p) { newAvatar = p.avatar; newLook = World.lookOf(p); newColor = kidColor(p); }
       render(`<section class="screen">
         <header class="topbar">
           <button class="chip" data-act="go" data-arg="${p ? 'camp' : 'profiles'}">→ رجوع</button>
@@ -175,6 +177,11 @@
           <input id="pname" type="text" maxlength="20" autocomplete="off" value="${p ? esc(p.name) : ''}" placeholder="اكتب اسمك هنا">
           <div class="label">اختر شخصيتك</div>
           <div class="avatar-grid">${AVATARS.map(a => `<button class="avatar-btn ${a === newAvatar ? 'selected' : ''}" data-act="pickAvatar" data-arg="${a}">${a}</button>`).join('')}</div>
+          <div class="label">اختر لون إطارك</div>
+          <div class="color-pick">
+            <span id="facePreview" class="face-preview" style="--c:${newColor}">${newAvatar}</span>
+            <div class="color-grid">${KID_COLORS.map(c => `<button class="color-btn ${c === newColor ? 'selected' : ''}" style="--c:${c}" data-act="pickColor" data-arg="${c}" aria-label="لون"></button>`).join('')}</div>
+          </div>
           ${World.lookPicker(newLook)}
           <button class="btn pink wide" data-act="${p ? 'saveProfile' : 'createProfile'}">${p ? '✅ حفظ' : '🚀 هيا نبدأ'}</button>
           ${p ? `<button class="btn soft wide" data-act="changeKidPin">🔑 ${p.pin ? 'تغيير رمزي السري' : 'اختر رمزاً سرياً'}</button>` : ''}
@@ -217,7 +224,7 @@
 
         ${World.greeting(st.streak)}
         <div class="hello">
-          <button class="big-avatar" data-act="editProfile" aria-label="تعديل">${p.avatar}<i>✏️</i></button>
+          <button class="big-avatar" ${p.color ? `style="border-color:${p.color}"` : ''} data-act="editProfile" aria-label="تعديل">${p.avatar}<i>✏️</i></button>
           <div>
             <h1>أهلاً يا ${esc(p.name)}!</h1>
             <div class="rank-badge">${rank.emoji} ${rank.name}</div>
@@ -269,6 +276,7 @@
 
         ${owned.length ? `<div class="card"><h2>🎒 عدّة البطل</h2><div class="gear">${owned.map(i => `<span title="${i.name}">${i.emoji}</span>`).join('')}</div></div>` : ''}
         <button class="link-btn" data-act="openParent">👨‍👩‍👧 ولي الأمر والإعدادات</button>
+        <button class="link-btn" data-act="appUpdate">🔄 تحديث التطبيق</button>
       </section>`);
     },
 
@@ -570,7 +578,7 @@
         <div class="world-switch">${tabs.map(t => `<button class="${parentTab === t[0] ? 'on' : ''}" data-act="parentTab" data-arg="${t[0]}">${t[1]}</button>`).join('')}</div>
         ${body}
       </section>`);
-      if (parentTab === 'settings') bindSettings();
+      if (parentTab === 'settings') { bindSettings(); showVersion(); }
       if (parentTab === 'data') $('backupFile').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) restoreFile(f); };
     },
   };
@@ -825,11 +833,24 @@
       ${noAr ? '<p class="note">⚠️ لا يوجد صوت عربي على هذا الجهاز. ثبّته من إعدادات اللغة والكلام في النظام، أو سجّل الكلمات بصوتك 🎤. وحتى ذلك الحين تُعرض الكلمة العربية بدل نطقها.</p>' : ''}
     </div>
     <div class="card">
+      <h2>🔄 تحديث التطبيق</h2>
+      <p class="muted">النسخة على هذا الجهاز: <b id="appVersion" dir="ltr">…</b></p>
+      <button class="btn soft wide" data-act="appUpdate">🔄 احصل على آخر تحديث</button>
+    </div>
+    <div class="card">
       <h2>🔐 رمز ولي الأمر</h2>
       <button class="btn soft wide" data-act="setPin">${Store.state.pin ? 'تغيير الرمز' : 'إنشاء رمز'}</button>
       ${Store.state.pin ? '<button class="link-btn dark" data-act="clearPin">إزالة الرمز</button>' : ''}
     </div>
     ${kidPinsCard()}`;
+  }
+  // رقم النسخة المحفوظة على الجهاز (اسم ذاكرة الـ service worker)
+  function showVersion() {
+    if (!window.caches) return;
+    caches.keys().then(k => {
+      const v = k.find(x => x.startsWith('spelling-hero-'));
+      if ($('appVersion')) $('appVersion').textContent = v ? v.replace('spelling-hero-', '') : 'بدون إنترنت';
+    }).catch(() => {});
   }
   function bindSettings() {
     app.querySelectorAll('[data-set]').forEach(el => {
@@ -983,8 +1004,9 @@
     const can = Speech.can(q.word);
     const box = Engine.peekBox(Store.current(), q.word);
     const mode = round.mode;
-    // الوضع الحر واختبار الإملاء: لا تُعرض الكلمة، يكفي نطقها أو معناها والإيموجي
-    if (round.src.startsWith('list:') || mode === 'exam') return can || q.word.m ? 0 : 3;
+    // اختبار الإملاء واختبار القائمة الحرة وسباقها: لا تُعرض الكلمة، يكفي نطقها أو معناها والإيموجي.
+    // أما التدريب التدريجي على القائمة فتظهر فيه الكلمة كما في الخطة
+    if ((round.src.startsWith('list:') && mode !== 'practice') || mode === 'exam') return can || q.word.m ? 0 : 3;
     if (q.stage === 'write' && box >= CONFIG.audioOnlyBox && can) return 0;
     if (mode === 'race') return 2;
     if (s.flash === 0) return can ? 0 : 3;   // لا يُسمع الصوت: لا بد من رؤية الكلمة
@@ -1064,7 +1086,7 @@
     renderTools();
   }
   const hiddenText = q => (q.flash !== 0 ? '••••' : Speech.can(q.word) ? '🔊 استمع واكتب' : '📖 اكتب الكلمة حسب المعنى');
-  const noPeek = r => r.mode === 'exam' || r.mode === 'race' || r.src.startsWith('list:');
+  const noPeek = r => r.mode === 'exam' || r.mode === 'race' || (r.src.startsWith('list:') && r.mode !== 'practice');
   function renderTools() {
     const r = round;
     const q = r.q;
@@ -1297,12 +1319,19 @@
     modalYes() { closeModal(true); },
     modalNo() { closeModal(false); },
     go(arg, el) { go(arg, el && el.dataset.arg2); },
-    newProfile() { newAvatar = AVATARS[0]; newLook = World.CUTE; go('newProfile'); },
+    newProfile() { newAvatar = AVATARS[0]; newLook = World.CUTE; newColor = KID_COLORS[Store.state.profiles.length % KID_COLORS.length]; go('newProfile'); },
     editProfile() { go('newProfile', '1'); },
     pickAvatar(a, el) {
       newAvatar = a;
       app.querySelectorAll('.avatar-btn').forEach(b => b.classList.remove('selected'));
       el.classList.add('selected');
+      const fp = $('facePreview'); if (fp) fp.textContent = a;
+      Sound.play('tap');
+    },
+    pickColor(c, el) {
+      newColor = c;
+      app.querySelectorAll('.color-btn').forEach(b => b.classList.toggle('selected', b === el));
+      const fp = $('facePreview'); if (fp) fp.style.setProperty('--c', c);
       Sound.play('tap');
     },
     pickLook(look, el) {
@@ -1315,6 +1344,7 @@
       if (!name) { toast('اكتب اسمك أولاً 😊'); $('pname').focus(); return; }
       Store.addProfile(name, newAvatar);
       Store.current().look = newLook;
+      Store.current().color = newColor;
       Store.save();
       Sound.play('open');
       go('start');
@@ -1323,7 +1353,7 @@
       const name = $('pname').value.trim();
       if (!name) { toast('اكتب اسمك أولاً 😊'); return; }
       const p = Store.current();
-      p.name = name; p.avatar = newAvatar; p.look = newLook;
+      p.name = name; p.avatar = newAvatar; p.look = newLook; p.color = newColor;
       Store.save();
       go('camp');
     },
@@ -1611,6 +1641,17 @@
     leaveParent() { parentOK = false; kidPinShown = ''; go(Store.current() ? 'camp' : 'profiles'); },
     parentTab(t) { parentTab = t; kidPinShown = ''; Screens.parent(); },
     parentKid(id) { parentKid = id; Screens.parent(); },
+    // يجلب آخر نسخة من الإنترنت: يحدّث الـ service worker ويمسح الملفات المحفوظة ثم يعيد التحميل
+    async appUpdate() {
+      if (!navigator.onLine) { toast('📡 التحديث يحتاج اتصالاً بالإنترنت'); return; }
+      toast('⏳ جارٍ جلب آخر تحديث…', 5000);
+      try {
+        const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+        if (reg) await reg.update().catch(() => {});
+        if (window.caches) await Promise.all((await caches.keys()).map(k => caches.delete(k)));
+      } catch (e) { /* نعيد التحميل على أي حال */ }
+      location.reload();
+    },
     toggleKidPin(id) { kidPinShown = kidPinShown === id ? '' : id; parentInPlace(); },
     setKidPin(id) {
       const k = Store.state.profiles.find(x => x.id === id);

@@ -188,7 +188,7 @@ const AVATARS = [
 ];
 
 // ألوان بطاقات الأبطال
-const KID_COLORS = ['#c2457d', '#1f9e9a', '#3f7fd9', '#e8872b', '#7a4fa3', '#2f8f5b', '#d9412f'];
+const KID_COLORS = ['#c2457d', '#1f9e9a', '#3f7fd9', '#e8872b', '#7a4fa3', '#2f8f5b', '#d9412f', '#f2b705', '#ff6fae', '#00a6d6', '#8d6e63', '#37474f'];
 
 const BADGES = [
   { id: 'w1',    icon: '🌟', name: 'أول كلمة',       desc: 'أتقن كلمة واحدة',     test: s => s.mastered >= 1 },
