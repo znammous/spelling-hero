@@ -192,14 +192,14 @@ const KID_COLORS = ['#c2457d', '#1f9e9a', '#3f7fd9', '#e8872b', '#7a4fa3', '#2f8
 
 const BADGES = [
   { id: 'w1',    icon: '🌟', name: 'أول كلمة',       desc: 'أتقن كلمة واحدة',     test: s => s.mastered >= 1 },
-  { id: 'w25',   icon: '📘', name: 'جامع الكلمات',    desc: 'أتقن 25 كلمة',        test: s => s.mastered >= 25 },
+  { id: 'w25',   icon: '🧺', name: 'جامع الكلمات',    desc: 'أتقن 25 كلمة',        test: s => s.mastered >= 25 },
   { id: 'w100',  icon: '📚', name: 'صاحب القاموس',    desc: 'أتقن 100 كلمة',       test: s => s.mastered >= 100 },
   { id: 'd3',    icon: '🔥', name: 'ثلاثة أيام',      desc: 'العب 3 أيام متتالية', test: s => s.streak >= 3 },
   { id: 'd7',    icon: '🌋', name: 'أسبوع كامل',      desc: 'العب 7 أيام متتالية', test: s => s.streak >= 7 },
   { id: 'per',   icon: '🎯', name: 'جولة كاملة',      desc: 'جولة بلا أي خطأ',     test: s => s.perfect >= 1 },
   { id: 'per5',  icon: '🏹', name: 'الرامي الدقيق',   desc: '5 جولات بلا خطأ',     test: s => s.perfect >= 5 },
   { id: 'race',  icon: '🏃', name: 'العدّاء',          desc: '10 كلمات في السباق',  test: s => s.best >= 10 },
-  { id: 'exam',  icon: '📝', name: 'نجم الاختبار',    desc: 'اختبار بنتيجة كاملة', test: s => s.examPerfect >= 1 },
+  { id: 'exam',  icon: '💯', name: 'نجم الاختبار',    desc: 'اختبار بنتيجة كاملة', test: s => s.examPerfect >= 1 },
   { id: 'free',  icon: '✍️', name: 'صانع القوائم',    desc: 'تدرّب في الوضع الحر', test: s => s.freeRounds >= 1 },
   { id: 'ar',    icon: '🕌', name: 'فارس الضاد',      desc: 'أكمل الخطة العربية',  test: s => s.arDone },
   { id: 'en',    icon: '🔠', name: 'English Hero',    desc: 'أكمل الخطة الإنجليزية', test: s => s.enDone },
