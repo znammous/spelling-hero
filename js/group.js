@@ -1373,7 +1373,8 @@ const Group = (() => {
       C.go('profiles', null, true);
     }).catch(e => {
       const msg = { expired: '⚠️ الرمز غير صحيح أو انتهت صلاحيته. اطلب رمزاً جديداً من ولي الأمر.', 'signed-in': 'هذا الجهاز مسجّل بحساب Google بالفعل.', network: '📡 تعذّر الاتصال، تأكد من الإنترنت' }[e.message];
-      C.toast(msg || '⚠️ تعذّر الانضمام', 5000);
+      // نُظهر رمز الخطأ ليسهل معرفة السبب إن تكرّر
+      C.toast(msg || `⚠️ تعذّر الانضمام (${C.esc(e.code || e.message || 'خطأ')})`, 5000);
     });
   }
   function applyPendingKid() {
