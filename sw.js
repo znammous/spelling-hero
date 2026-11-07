@@ -1,6 +1,6 @@
 // يحفظ ملفات اللعبة على الجهاز لتعمل بدون إنترنت
 // غيّر رقم الإصدار عند تعديل أي ملف حتى يحدَّث الكاش
-const CACHE = 'spelling-hero-v29';
+const CACHE = 'spelling-hero-v30';
 const FILES = [
   './',
   'index.html',
@@ -16,6 +16,7 @@ const FILES = [
   'js/sound.js',
   'js/speech.js',
   'js/engine.js',
+  'js/online.js',
   'js/brain.js',
   'js/sync.js',
   'js/winner.js',

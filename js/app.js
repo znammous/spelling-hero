@@ -328,7 +328,7 @@
       const lists = Store.state.lists;
       render(`<section class="screen">
         ${subHeader('✍️ الوضع الحر')}
-        <p class="hint">أدخل كلمات درسك أو واجبك وتدرّب عليها. اللغة تُكتشف تلقائياً، والمعنى يأتي من القاموس إن وُجد.</p>
+        <p class="hint">أدخل كلمات درسك أو واجبك وتدرّب عليها. اللغة تُكتشف تلقائياً، والمعنى والإيموجي من القاموس، ومن الإنترنت إن لم يجدهما.</p>
         <button class="btn gold wide" data-act="newList">➕ قائمة كلمات جديدة</button>
         <button class="btn soft wide" data-act="importList">📂 فتح ملف كلمات</button>
         <input type="file" id="fileInput" accept=".json,.txt,application/json,text/plain" hidden>
@@ -360,7 +360,9 @@
             <button class="btn green" data-act="addWord" data-arg="${l.id}">➕</button>
           </div>
           <button class="btn soft wide small" data-act="bulkOpen" data-arg="${l.id}">📥 لصق قائمة كلمات</button>
+          <p class="note">👀 لن تظهر الكلمة للطفل أثناء اللعب. سيظهر له: 🔊 النطق، والإيموجي، و📖 المعنى. راجعها هنا، وعدّل المعنى أو الإيموجي بزر ✏️.</p>
           <p class="muted small-note">🎤 اضغط المايكروفون لتسجيل نطق الكلمة بصوتك، فتسمعه اللعبة بدل صوت الجهاز.</p>
+          <button class="btn soft wide small" data-act="fetchMeanings" data-arg="${l.id}">🌐 جلب المعاني والإيموجي الناقصة من الإنترنت</button>
           <div id="wordsBox" class="wordlist">${listRows(l)}</div>
         </div>
         <div id="listPlay">${listPlay(p, l)}</div>
@@ -586,6 +588,7 @@
       <span class="tag">${w.lang === 'ar' ? 'عربي' : 'EN'}</span>
       <button class="wbtn" data-act="sayIdx" data-arg="${i}" data-list="${l.id}">🔊</button>
       <button class="wbtn rec ${Speech.isRecording(w.t) ? 'on' : ''} ${Speech.hasRec(w.t) ? 'has' : ''}" data-act="recWord" data-arg="${esc(w.t)}">${Speech.isRecording(w.t) ? '⏹️' : '🎤'}</button>
+      <button class="wbtn" data-act="editWord" data-arg="${i}" data-list="${l.id}" aria-label="تعديل">✏️</button>
       <button class="wbtn del" data-act="delWord" data-arg="${i}" data-list="${l.id}" aria-label="حذف">✕</button>
     </div>`).join('');
   }
@@ -721,7 +724,8 @@
       <h2>✏️ طريقة الإملاء</h2>
       <label class="lbl">مدة إظهار الكلمة قبل إخفائها</label>
       <select data-set="flash" data-num="1">${opt(0, 'لا تُظهر (إملاء سماعي فقط)', s.flash)}${opt(2, '2 ثانية', s.flash)}${opt(3, '3 ثوانٍ', s.flash)}${opt(5, '5 ثوانٍ', s.flash)}${opt(8, '8 ثوانٍ', s.flash)}${opt(-1, 'تبقى ظاهرة (نسخ للمبتدئين)', s.flash)}</select>
-      <p class="muted small-note">الكلمة المتقنة جداً تُملى سماعاً تلقائياً، وإذا لم يتوفر صوت تُعرض بدل ذلك.</p>
+      <p class="muted small-note">يطبَّق على تدريب الخطط فقط. الكلمة المتقنة جداً تُملى سماعاً تلقائياً، وإذا لم يتوفر صوت تُعرض بدل ذلك.</p>
+      <p class="muted small-note">في الوضع الحر واختبار الإملاء لا تُعرض الكلمة: يسمع الطفل نطقها ويرى الإيموجي والمعنى فقط.</p>
       <label class="lbl">محاولات الكتابة لكل كلمة</label>
       <select data-set="tries" data-num="1">${[1, 2, 3].map(n => opt(n, n, s.tries)).join('')}</select>
       <label class="lbl">هدف اللعب اليومي</label>
@@ -809,15 +813,27 @@
     };
     r.readAsText(file);
   }
+  // بعد إضافة كلمات: يكمل الناقص من معانٍ وإيموجي عبر الإنترنت دون أن يوقف اللعب
+  function autoFill(l, texts) {
+    if (!navigator.onLine || typeof Online === 'undefined') return;
+    Online.fillList(l, texts).then(n => {
+      if (!n) return;
+      if (nav.cur === 'list' && nav.arg === l.id) refreshList(l);
+      toast(`🌐 جُلب المعنى أو الإيموجي لـ ${n} كلمة. راجعها بزر ✏️`, 3000);
+    });
+  }
   function addParsed(l, items) {
     let n = 0;
+    const added = [];
     items.forEach(x => {
       const t = String(x.t || '').trim();
       if (!t || l.words.some(w => w.t === t)) return;
       l.words.push({ t, lang: x.lang === 'ar' || x.lang === 'en' ? x.lang : Engine.detectLang(t), h: String(x.h || ''), e: String(x.e || '') });
+      added.push(t);
       n++;
     });
     Store.save();
+    if (added.length) autoFill(l, added);
     return n;
   }
 
@@ -890,7 +906,8 @@
     const can = Speech.can(q.word);
     const box = Engine.peekBox(Store.current(), q.word);
     const mode = round.mode;
-    if (mode === 'exam') return can ? 0 : s.flash > 0 ? s.flash : 3;
+    // الوضع الحر واختبار الإملاء: لا تُعرض الكلمة، يكفي نطقها أو معناها والإيموجي
+    if (round.src.startsWith('list:') || mode === 'exam') return can || q.word.m ? 0 : 3;
     if (q.stage === 'write' && box >= CONFIG.audioOnlyBox && can) return 0;
     if (mode === 'race') return 2;
     if (s.flash === 0) return can ? 0 : 3;   // لا يُسمع الصوت: لا بد من رؤية الكلمة
@@ -965,10 +982,12 @@
     q.hidden = true;
     const box = $('wordBox');
     box.classList.add('hidden-word');
-    box.textContent = q.flash === 0 ? '🔊 استمع واكتب' : '••••';
+    box.textContent = hiddenText(q);
     $('flashFill').style.width = '0%';
     renderTools();
   }
+  const hiddenText = q => (q.flash !== 0 ? '••••' : Speech.can(q.word) ? '🔊 استمع واكتب' : '📖 اكتب الكلمة حسب المعنى');
+  const noPeek = r => r.mode === 'exam' || r.mode === 'race' || r.src.startsWith('list:');
   function renderTools() {
     const r = round;
     const q = r.q;
@@ -977,7 +996,7 @@
     let h = S().speak ? `<button class="tool" data-act="replay" ${can ? '' : 'disabled'}>🔊 استمع</button>` : '';
     if (q.copy) h += '<button class="tool" data-act="skipCopy">⏭️ التالي</button>';
     else if (r.mode !== 'exam' && r.mode !== 'race' && q.stage !== 'fill') {
-      if (q.hidden) h += '<button class="tool" data-act="peek">👁️ أرني</button>';
+      if (q.hidden && !noPeek(r)) h += '<button class="tool" data-act="peek">👁️ أرني</button>';
       if (q.stage === 'write') h += '<button class="tool" data-act="hint">💡 تلميح</button>';
     }
     $('tools').innerHTML = h;
@@ -1319,7 +1338,7 @@
     replay() { if (round && round.q) Speech.say(round.q.word); },
     peek() {
       const r = round;
-      if (!r || r.locked || !r.q || r.q.copy || !r.q.hidden || r.mode === 'exam' || r.mode === 'race') return;
+      if (!r || r.locked || !r.q || r.q.copy || !r.q.hidden || noPeek(r)) return;
       const q = r.q;
       q.helped = true;   // نظرة واحدة تعني أن الإجابة لا تُحسب إتقاناً
       const box = $('wordBox');
@@ -1329,7 +1348,7 @@
       r.peekT = setTimeout(() => {
         if (round && round.q === q && !q.copy && !r.locked) {
           box.classList.add('hidden-word');
-          box.textContent = q.flash === 0 ? '🔊 استمع واكتب' : '••••';
+          box.textContent = hiddenText(q);
         }
       }, 1300);
     },
@@ -1399,6 +1418,45 @@
       input.focus();
       Sound.play('coin');
       refreshList(l);
+    },
+    fetchMeanings(id) {
+      const l = Store.list(id);
+      if (!navigator.onLine) { toast('📡 لا يوجد اتصال بالإنترنت'); return; }
+      toast('🌐 جارٍ البحث…');
+      Online.fillList(l).then(n => {
+        refreshList(l);
+        toast(n ? `✅ اكتملت ${n} كلمة` : 'لا توجد كلمات ناقصة، أو لم يُعثر على جديد');
+      });
+    },
+    editWord(i, el) {
+      const id = el.dataset.list;
+      const open = () => editWordModal(id, Number(i));
+      if (Store.state.pin && !wordsOK) { pinState = { stage: 'enter', buf: '', after: open }; pinModal(); return; }
+      open();
+    },
+    saveWord(i, el) {
+      const l = Store.list(el.dataset.list);
+      const x = l && l.words[Number(i)];
+      if (!x) return closeModal();
+      x.h = $('editMeaning').value.trim();
+      x.e = $('editEmoji').value.trim();
+      Store.save();
+      closeModal();
+      refreshList(l);
+      toast('✅ تم الحفظ');
+    },
+    webWord(i, el) {
+      const l = Store.list(el.dataset.list);
+      const x = l && l.words[Number(i)];
+      if (!x) return;
+      if (!navigator.onLine) { toast('📡 لا يوجد اتصال بالإنترنت'); return; }
+      el.disabled = true;
+      Online.complete({ t: x.t, lang: x.lang, m: '', e: '' }).then(got => {
+        if (!$('editMeaning')) return;
+        if (got.h) $('editMeaning').value = got.h;
+        if (got.e) $('editEmoji').value = got.e;
+        if (!got.h && !got.e) toast('لم يُعثر على نتيجة');
+      }).catch(() => toast('❌ تعذّر الاتصال')).finally(() => { el.disabled = false; });
     },
     delWord(i, el) {
       const l = Store.list(el.dataset.list);
@@ -1510,7 +1568,8 @@
       const v = pinState.buf;
       if (pinState.kid) { kidPinKey(v); return; }
       if (pinState.stage === 'enter') {
-        if (v === Store.state.pin) { closeModal(); pinState = null; parentOK = true; go('parent'); }
+        if (v === Store.state.pin && pinState.after) { const f = pinState.after; closeModal(); pinState = null; wordsOK = true; f(); }
+        else if (v === Store.state.pin) { closeModal(); pinState = null; parentOK = true; go('parent'); }
         else { pinState.buf = ''; Sound.play('wrong'); $('pinTitle').textContent = '❌ رمز غير صحيح'; pinDots(); }
       } else if (pinState.stage === 'new') {
         pinState = { stage: 'confirm', first: v, buf: '' };
@@ -1619,6 +1678,20 @@
       pinModal();
       $('pinTitle').textContent = '❌ لم يتطابق الرمز. أعد المحاولة';
     }
+  }
+  let wordsOK = false;   // أدخل ولي الأمر رمزه لتعديل كلمات القوائم في هذه الزيارة
+  function editWordModal(id, i) {
+    const l = Store.list(id);
+    const w = l && Engine.listWords(l)[i];
+    if (!w) return;
+    showModal(`<h2>✏️ <span dir="${wdir(w)}">${esc(w.t)}</span></h2>
+      <p class="muted">هذا ما يراه الطفل بدل الكلمة أثناء اللعب، مع نطقها.</p>
+      <label class="lbl" for="editEmoji">الإيموجي</label>
+      <input id="editEmoji" type="text" maxlength="16" value="${esc(w.e)}" placeholder="مثال: 🚆" style="font-size:1.6em;text-align:center">
+      <label class="lbl" for="editMeaning">المعنى</label>
+      <input id="editMeaning" type="text" maxlength="60" dir="auto" value="${esc(w.m)}" placeholder="${w.lang === 'en' ? 'مثال: قطار' : 'example: train'}">
+      <button class="btn soft wide small" data-act="webWord" data-arg="${i}" data-list="${id}">🌐 جلب من الإنترنت</button>
+      <div class="row"><button class="btn pink" data-act="saveWord" data-arg="${i}" data-list="${id}">حفظ</button><button class="btn soft" data-act="modalNo">رجوع</button></div>`);
   }
   function pinModal() {
     const k = pinState.kid && Store.state.profiles.find(x => x.id === pinState.kid);

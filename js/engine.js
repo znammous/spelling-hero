@@ -70,10 +70,11 @@ const Engine = (() => {
     if (!x.m.includes(' ')) { const k = x.m.toLowerCase(); if (!INDEX[k]) INDEX[k] = { e: x.e, m: x.t }; }
   })));
   Object.keys(DICT).forEach(k => {
-    if (!INDEX[k]) INDEX[k] = { e: '', m: DICT[k] };
+    if (!INDEX[k]) INDEX[k] = { e: EMOJI[k] || '', m: DICT[k] };
     const ar = strip(DICT[k]);
-    if (!INDEX[ar]) INDEX[ar] = { e: '', m: k };
+    if (!INDEX[ar]) INDEX[ar] = { e: EMOJI[k] || '', m: k };
   });
+  Object.keys(EMOJI).forEach(k => { if (INDEX[k] && !INDEX[k].e) INDEX[k].e = EMOJI[k]; });
   const lookup = t => INDEX[strip(String(t).trim()).toLowerCase()] || null;
 
   const listWord = (l, x) => {
