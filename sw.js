@@ -1,6 +1,6 @@
 // يحفظ ملفات اللعبة على الجهاز لتعمل بدون إنترنت
 // غيّر رقم الإصدار عند تعديل أي ملف حتى يحدَّث الكاش
-const CACHE = 'spelling-hero-v28';
+const CACHE = 'spelling-hero-v29';
 const FILES = [
   './',
   'index.html',
@@ -35,9 +35,13 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
+  // الشبكة أولاً حتى يصل كل تحديث فوراً، والمحفوظ عند انقطاع الإنترنت
   e.respondWith(
-    caches.match(e.request, { ignoreSearch: true })
-      .then(hit => hit || fetch(e.request))
-      .catch(() => caches.match('index.html'))
+    fetch(e.request, { cache: 'no-cache' })
+      .then(res => {
+        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
+        return res;
+      })
+      .catch(() => caches.match(e.request, { ignoreSearch: true }).then(hit => hit || caches.match('index.html')))
   );
 });
