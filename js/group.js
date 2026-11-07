@@ -208,9 +208,11 @@ const Group = (() => {
     duelResults(res) {
       const medals = ['🥇', '🥈', '🥉'];
       const firsts = res.sides.filter(x => x.place === 1);
+      // لاعب وحيد اكتملت نتيجته ليس «الأول»، فلا نعطيه ميدالية
+      const solo = res.sides.filter(x => x.place).length < 2;
       const title = res.winner ? `فاز ${res.winner.p.avatar} ${C.esc(res.winner.p.name)}!` : firsts.length > 1 ? 'تعادل! 🤝' : 'انتهى التحدي';
       const card = x => `<div class="card duel-card ${x === res.winner ? 'won' : ''}">
-        <div class="place">${x.place ? medals[x.place - 1] || C.ltr(x.place) : ''}</div>
+        <div class="place">${x.place && !solo ? medals[x.place - 1] || C.ltr(x.place) : ''}</div>
         <div class="big-emoji">${x.p.avatar}</div><b class="dname">${C.esc(x.p.name)}</b>
         <div class="stats">
           ${x.wins == null || x.gone ? '' : `<div><b>${C.ltr(`${x.wins}/${x.won.length}`)}</b><span>👑 ألعاب</span></div>`}
@@ -436,6 +438,8 @@ const Group = (() => {
     if (!duel) return;
     if (duel.net) {
       clearTimeout(duel.net.waitT);
+      clearTimeout(duel.net.pushT);
+      clearInterval(duel.net.pollT);
       if (!duel.net.finished) Sync.duel.update({ [`${myPath}.left`]: true }).catch(() => {});
     }
     clearInterval(duel.timer);
@@ -566,7 +570,7 @@ const Group = (() => {
     const q = s.q;
     s.locked = true;
     // اختيار الكتابة الصحيحة لا يكفي للإتقان: الإتقان بالكتابة وحدها
-    Engine.record(s.p, { word: q.word, stage: q.stage === 'spot' ? 'fill' : q.stage }, ok, false);
+    Engine.record(s.p, { word: q.word, stage: q.stage === 'spot' ? 'fill' : q.stage }, ok, false, given);
     Engine.addAnswer(s.p, q, ok, performance.now() - q.start, given);
     const box = $(`dW${i}`);
     if (ok) {
@@ -659,6 +663,12 @@ const Group = (() => {
   const inviteFor = d => !!(d && d.state === 'waiting' && d.players && d.host !== DEVICE && d.players[d.host] &&
     !activePlayers(d).some(x => x.device === DEVICE) && activePlayers(d).length < kindOf(d).max && Date.now() - d.createdAt < INVITE_MS);
   const othersDone = n => n.opps.every(o => o.done || o.left);
+  // كل الأجهزة تكتب في مستند واحد، والخادم لا يحتمل أكثر من كتابة تقريباً في الثانية للمستند،
+  // فإن أكثرنا تراكمت الكتابات وتأخرت نتائج المنافسين حتى تُحسب «انقطع اتصاله»
+  const PUSH_MS = { race: 1200, brain: 3000 };
+  // بعد أن ننهي ننتظر نتائج الباقين طويلاً، ونسحب المستند من الخادم دورياً بدل الاعتماد على المستمع وحده
+  const WAIT_MS = { race: 30000, brain: 45000 };
+  const pollServer = n => { n.pollT = setInterval(() => Sync.duel.refresh(), 3000); };
 
   function netHost() {
     const p = kid(duelPicks[0]);
@@ -737,7 +747,7 @@ const Group = (() => {
       Sync.duel.update(data).catch(() => {});
     };
     if (final) { clearTimeout(n.pushT); send(); return; }
-    if (!n.pushT) n.pushT = setTimeout(send, 600);
+    if (!n.pushT) n.pushT = setTimeout(send, PUSH_MS.race);
   }
   const waitLock = () => {
     const box = document.createElement('div');
@@ -753,7 +763,8 @@ const Group = (() => {
     n.finished = true;
     netPush(true);
     waitLock();
-    n.waitT = setTimeout(netResolve, 8000);
+    n.waitT = setTimeout(netResolve, WAIT_MS.race);
+    pollServer(n);
     if (othersDone(n)) netResolve();
   }
   function netResolve() {
@@ -912,6 +923,7 @@ const Group = (() => {
     if (brain.net) {
       clearTimeout(brain.net.waitT);
       clearTimeout(brain.net.pushT);
+      clearInterval(brain.net.pollT);
       if (!brain.net.finished) Sync.duel.update({ [`${myPath}.left`]: true }).catch(() => {});
     }
     clearInterval(brain.timer);
@@ -1219,7 +1231,7 @@ const Group = (() => {
       Sync.duel.update(data).catch(() => {});
     };
     if (final) { clearTimeout(n.pushT); send(); return; }
-    if (!n.pushT) n.pushT = setTimeout(send, 600);
+    if (!n.pushT) n.pushT = setTimeout(send, PUSH_MS.brain);
   }
   function netBrainUpdate(d) {
     const n = brain.net;
@@ -1238,7 +1250,8 @@ const Group = (() => {
     brain.phase = 'wait';
     netBrainPush(true);
     waitLock();
-    n.waitT = setTimeout(netBrainResolve, 15000);
+    n.waitT = setTimeout(netBrainResolve, WAIT_MS.brain);
+    pollServer(n);
     if (othersDone(n)) netBrainResolve();
   }
   function netBrainResolve() {

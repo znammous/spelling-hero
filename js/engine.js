@@ -135,7 +135,8 @@ const Engine = (() => {
     return 'write';
   }
 
-  function record(p, q, ok, helped) {
+  // given: ما كتبه الطفل، يُحفظ آخر خطأ في الكلمة لتقرير ولي الأمر
+  function record(p, q, ok, helped, given) {
     const f = fact(p, q.word);
     f.seen++;
     f.last = Date.now();
@@ -149,6 +150,7 @@ const Engine = (() => {
     } else {
       f.wrong++;
       f.box = Math.max(0, f.box - 1);
+      if (given) f.miss = String(given).slice(0, 40);
     }
   }
 

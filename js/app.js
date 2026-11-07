@@ -683,22 +683,78 @@
       const wrong = facts.reduce((n, f) => n + (f.wrong || 0), 0);
       const hard = words.filter(w => { const f = st.facts[w.t]; return f && f.wrong > 0 && Engine.peekBox(k, w) < CONFIG.masteredBox; })
         .sort((a, b) => st.facts[b.t].wrong - st.facts[a.t].wrong).slice(0, 8);
-      return { l, words, m: Engine.mastery(k, words), seen, acc: right + wrong ? Math.round((right / (right + wrong)) * 100) : null, st, hard };
+      return { l, words, m: Engine.mastery(k, words), seen, right, wrong, acc: right + wrong ? Math.round((right / (right + wrong)) * 100) : null, st, hard };
     });
     const used = rows.filter(r => r.seen);
     const unused = rows.filter(r => !r.seen);
     return `<div class="card"><h2>${self ? '✍️ قوائمي' : '📝 القوائم الحرة'}</h2>
-      ${used.length ? used.map(r => `<div class="free-rep">
-        <div class="rep-row"><span><b>${esc(r.l.name)}</b></span>${bar(r.m)}<b>${ltr(Math.round(r.m * 100) + '%')}</b></div>
+      ${self ? '' : '<p class="muted">اضغط على أي قائمة لترى تفاصيل كل كلمة فيها.</p>'}
+      ${used.length ? used.map(r => {
+        const head = `<div class="rep-row"><span><b>${esc(r.l.name)}</b></span>${bar(r.m)}<b>${ltr(Math.round(r.m * 100) + '%')}</b></div>
         <p class="free-rep-meta">${self ? 'تدرّبت' : 'تدرّب'} على ${ltr(`${r.seen}/${r.words.length}`)} كلمة
           ${r.acc !== null ? ` · دقة ${ltr(r.acc + '%')}` : ''}
           ${r.st.bestRace ? ` · أفضل سباق ${ltr(r.st.bestRace)}` : ''}
-          ${r.st.examBest !== null && r.st.examBest !== undefined ? ` · أفضل اختبار ${ltr(`${r.st.examBest}/${r.words.length}`)}` : ''}</p>
-        ${r.hard.length ? `<div class="chips">${r.hard.map(w => `<span class="w-chip" dir="${wdir(w)}">${wordHTML(w)}</span>`).join('')}</div>` : ''}
-      </div>`).join('') : `<p class="muted">${self ? 'لم تتدرّب على أي قائمة بعد. افتح «كلماتي» وابدأ ✍️' : `لم يتدرّب ${esc(k.name)} على أي قائمة حرة بعد.`}</p>`}
+          ${r.st.examBest !== null && r.st.examBest !== undefined ? ` · أفضل اختبار ${ltr(`${r.st.examBest}/${r.words.length}`)}` : ''}</p>`;
+        if (self) {
+          return `<div class="free-rep">${head}
+            ${r.hard.length ? `<div class="chips">${r.hard.map(w => `<span class="w-chip" dir="${wdir(w)}">${wordHTML(w)}</span>`).join('')}</div>` : ''}</div>`;
+        }
+        return `<details class="free-rep"><summary>${head}</summary>${freeDetail(k, r)}</details>`;
+      }).join('') : `<p class="muted">${self ? 'لم تتدرّب على أي قائمة بعد. افتح «كلماتي» وابدأ ✍️' : `لم يتدرّب ${esc(k.name)} على أي قائمة حرة بعد.`}</p>`}
       ${unused.length && used.length ? `<p class="muted free-rep-none">${self ? 'لم تتدرّب' : 'لم يتدرّب'} بعد على: ${unused.map(r => esc(r.l.name)).join('، ')}</p>` : ''}
     </div>`;
   }
+  // تفاصيل قائمة واحدة لولي الأمر: حالة كل كلمة، والمجموعات، والسباقات، وآخر تدريب، وآخر خطأ كتبه
+  function freeDetail(k, r) {
+    const src = 'list:' + r.l.id;
+    const when = t => {
+      if (!t) return '';
+      const days = Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(t).setHours(0, 0, 0, 0)) / 864e5);
+      return days <= 0 ? 'اليوم' : days === 1 ? 'أمس' : days < 7 ? `قبل ${ltr(days)} أيام`
+        : new Date(t).toLocaleDateString('ar', { day: 'numeric', month: 'short', numberingSystem: 'latn' });
+    };
+    // آخر خطأ: المحفوظ مع الكلمة، وإلا من سجلّ أخطاء الأيام السابقة
+    const missFromDays = {};
+    Object.keys(k.days || {}).sort().forEach(d => (k.days[d].mistakes || []).forEach(m => { if (m.src === src && m.given) missFromDays[m.t] = m.given; }));
+    const STAGES = [
+      { id: 'new', icon: '⚪', name: 'لم يجرّبها' },
+      { id: 'hard', icon: '🔴', name: 'صعبة عليه' },
+      { id: 'learn', icon: '🟡', name: 'يتعلّمها' },
+      { id: 'done', icon: '✅', name: 'متقنة' },
+    ];
+    const stageOf = f => (!f || !f.seen ? 'new' : f.box >= CONFIG.masteredBox ? 'done' : f.wrong > f.right ? 'hard' : 'learn');
+    const step = f => (!f || !f.seen ? '' : f.box >= CONFIG.masteredBox ? 'يكتبها وحده' : f.box >= 2 ? 'يكتبها' : f.box === 1 ? 'يكمل الناقص' : 'يرتّب الحروف');
+    const words = r.words.map(w => ({ w, f: r.st.facts[w.t], s: stageOf(r.st.facts[w.t]) }));
+    const count = id => words.filter(x => x.s === id).length;
+    const last = Math.max(0, ...words.map(x => (x.f && x.f.last) || 0));
+    const groups = Engine.chunks(r.l);
+    const gDone = groups.filter(g => Engine.mastery(k, g) >= CONFIG.unlockAt).length;
+    const races = (k.races || []).filter(x => x.src === src);
+    const facts = [
+      last ? `🕒 آخر تدريب: ${when(last)}` : '',
+      groups.length > 1 ? `🪜 المجموعات المتقنة: ${ltr(`${gDone}/${groups.length}`)}` : '',
+      `✔️ إجابات صحيحة ${ltr(r.right)} · ✖️ خاطئة ${ltr(r.wrong)}`,
+      races.length ? `🏃 ${ltr(races.length)} ${races.length === 1 ? 'سباق' : 'سباقات'}، آخرها ${ltr(races[races.length - 1].score)} كلمات` : '',
+    ].filter(Boolean);
+    return `<div class="free-detail">
+      <div class="stage-tiles">${STAGES.map(x => `<div class="st-${x.id}"><b>${x.icon} ${ltr(count(x.id))}</b><span>${x.name}</span></div>`).join('')}</div>
+      <ul class="free-facts">${facts.map(x => `<li>${x}</li>`).join('')}</ul>
+      <div class="word-table">
+        <div class="wt-row wt-head"><span>الكلمة</span><span>الحالة</span><span>المحاولات</span><span>آخر خطأ</span></div>
+        ${words.map(({ w, f, s }) => {
+          const st = STAGES.find(x => x.id === s);
+          const miss = (f && f.miss) || (s !== 'new' && s !== 'done' ? missFromDays[w.t] : '') || '';
+          return `<div class="wt-row wt-${s}">
+            <span class="wt-word" dir="${wdir(w)}">${wordHTML(w)}</span>
+            <span>${st.icon} ${st.name}${step(f) && s !== 'done' ? `<small>${step(f)}</small>` : ''}</span>
+            <span class="wt-tries">${f && f.seen ? `<i class="ok">✔ ${ltr(f.right)}</i><i class="no">✖ ${ltr(f.wrong)}</i>` : '—'}</span>
+            <span class="wt-miss" dir="${wdir(w)}">${miss ? `<s>${esc(miss)}</s>` : '—'}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
   function parentKids() {
     const kids = Store.state.profiles;
     if (!kids.length) return '<div class="card empty"><span>🧒</span><p>لا يوجد أطفال بعد.</p></div>';
@@ -1102,7 +1158,7 @@
     r.locked = true;
     clearInterval(r.flashTimer);
     const given = q.stage === 'write' ? q.input : q.stage === 'tile' ? q.picked.map(i => q.tiles[i]).join('') : q.ls.map((c, i) => (i === q.at ? q.answerChoice : c)).join('');
-    Engine.record(p, q, ok, helped);
+    Engine.record(p, q, ok, helped, given);
     Engine.addAnswer(p, q, ok, performance.now() - q.start, given);
     r.asked++;
     if (ok) {

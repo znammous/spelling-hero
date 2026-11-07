@@ -635,3 +635,27 @@ input[type=checkbox] { width: 24px; height: 24px; flex-shrink: 0; accent-color: 
 .group-words.now { background: color-mix(in srgb, var(--primary) 14%, #fff); border: 3px solid var(--primary); box-shadow: 0 6px 0 var(--primary-dark); }
 .play-pill { flex-shrink: 0; align-self: center; background: var(--primary); color: #fff; font-weight: 800; font-size: 1rem; padding: 9px 16px; border-radius: 999px; box-shadow: 0 4px 0 var(--primary-dark); white-space: nowrap; }
 .group-words.done .play-pill { background: var(--gold); color: var(--deep-dark); box-shadow: 0 4px 0 var(--gold-dark); font-size: .9rem; padding: 7px 12px; }
+
+/* تفاصيل القوائم الحرة في تقرير ولي الأمر */
+details.free-rep > summary { list-style: none; cursor: pointer; }
+details.free-rep > summary::-webkit-details-marker { display: none; }
+details.free-rep > summary .rep-row span b::after { content: ' ▾'; color: var(--muted); font-size: .8em; }
+details.free-rep[open] > summary .rep-row span b::after { content: ' ▴'; }
+.free-detail { background: var(--card); border-radius: 16px; padding: 12px; margin-top: 6px; }
+.stage-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.stage-tiles div { background: #fff; border-radius: 12px; padding: 6px 2px; text-align: center; }
+.stage-tiles b { display: block; font-size: 1.05rem; }
+.stage-tiles span { display: block; font-size: .72rem; color: var(--muted); }
+.stage-tiles b span { display: inline; font-size: inherit; color: inherit; }
+.free-facts { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 4px; font-size: .88rem; }
+.word-table { display: grid; gap: 4px; }
+.wt-row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.3fr) 58px minmax(0, 1fr); gap: 6px; align-items: center; background: #fff; border-radius: 10px; padding: 6px 8px; font-size: .86rem; }
+.wt-head { background: transparent; color: var(--muted); font-size: .76rem; font-weight: 700; padding-block: 0; }
+.wt-word { font-weight: 800; font-size: 1rem; }
+.wt-row small { display: block; color: var(--muted); font-size: .72rem; }
+.wt-tries i { display: block; font-style: normal; font-weight: 800; font-size: .8rem; line-height: 1.35; }
+.wt-tries .ok { color: var(--teal); }
+.wt-tries .no { color: var(--red); }
+.wt-miss s { color: var(--red); text-decoration-thickness: 2px; }
+.wt-hard { box-shadow: inset -4px 0 0 var(--red); }
+.wt-done { opacity: .8; }
