@@ -572,6 +572,35 @@
       <small class="muted">كتبتَ: <span dir="${wdir(word)}">${esc(given)}</span></small>`;
   }
 
+  // أداء الطفل في قوائم الوضع الحر: القوائم مشتركة بين الأبطال، ولكل طفل تقدّمه في كل قائمة
+  function freeReport(k) {
+    const lists = Store.state.lists.filter(l => l.words.length);
+    if (!lists.length) return '';
+    const rows = lists.map(l => {
+      const words = Engine.listWords(l);
+      const st = (k.free || {})[l.id] || { facts: {} };
+      const facts = words.map(w => st.facts[w.t]).filter(Boolean);
+      const seen = facts.filter(f => f.seen > 0).length;
+      const right = facts.reduce((n, f) => n + (f.right || 0), 0);
+      const wrong = facts.reduce((n, f) => n + (f.wrong || 0), 0);
+      const hard = words.filter(w => { const f = st.facts[w.t]; return f && f.wrong > 0 && Engine.peekBox(k, w) < CONFIG.masteredBox; })
+        .sort((a, b) => st.facts[b.t].wrong - st.facts[a.t].wrong).slice(0, 8);
+      return { l, words, m: Engine.mastery(k, words), seen, acc: right + wrong ? Math.round((right / (right + wrong)) * 100) : null, st, hard };
+    });
+    const used = rows.filter(r => r.seen);
+    const unused = rows.filter(r => !r.seen);
+    return `<div class="card"><h2>📝 القوائم الحرة</h2>
+      ${used.length ? used.map(r => `<div class="free-rep">
+        <div class="rep-row"><span><b>${esc(r.l.name)}</b></span>${bar(r.m)}<b>${ltr(Math.round(r.m * 100) + '%')}</b></div>
+        <p class="free-rep-meta">تدرّب على ${ltr(`${r.seen}/${r.words.length}`)} كلمة
+          ${r.acc !== null ? ` · دقة ${ltr(r.acc + '%')}` : ''}
+          ${r.st.bestRace ? ` · أفضل سباق ${ltr(r.st.bestRace)}` : ''}
+          ${r.st.examBest !== null && r.st.examBest !== undefined ? ` · أفضل اختبار ${ltr(`${r.st.examBest}/${r.words.length}`)}` : ''}</p>
+        ${r.hard.length ? `<div class="chips">${r.hard.map(w => `<span class="w-chip" dir="${wdir(w)}">${wordHTML(w)}</span>`).join('')}</div>` : ''}
+      </div>`).join('') : `<p class="muted">لم يتدرّب ${esc(k.name)} على أي قائمة حرة بعد.</p>`}
+      ${unused.length && used.length ? `<p class="muted free-rep-none">لم يتدرّب بعد على: ${unused.map(r => esc(r.l.name)).join('، ')}</p>` : ''}
+    </div>`;
+  }
   function parentKids() {
     const kids = Store.state.profiles;
     if (!kids.length) return '<div class="card empty"><span>🧒</span><p>لا يوجد أطفال بعد.</p></div>';
@@ -598,6 +627,7 @@
           ${ws.unlocked < w.regions.length ? `<button class="mini" data-act="unlockAll" data-arg="${w.id}">🔓 فتح كل المناطق</button>` : ''}`;
         }).join('')}
       </div>
+      ${freeReport(k)}
       <div class="card"><h2>🎯 كلمات تحتاج تدريباً</h2>
         ${hard.length ? `<div class="chips">${hard.map(w => `<span class="w-chip" dir="${wdir(w)}">${wordHTML(w)}</span>`).join('')}</div>` : '<p class="muted">لا توجد كلمات صعبة حتى الآن 👏</p>'}
       </div>

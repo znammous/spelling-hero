@@ -605,3 +605,9 @@ input[type=checkbox] { width: 24px; height: 24px; flex-shrink: 0; accent-color: 
 .kid-pin-row .row > .btn { flex: 0 0 auto; padding: 10px 22px; }
 .kid-pin-row .row > input { text-align: center; letter-spacing: .3em; }
 .kid-pin-row .row > input::placeholder { letter-spacing: 0; }
+
+/* أداء الطفل في القوائم الحرة */
+.free-rep { padding: 10px 0; border-top: 1px solid rgba(0, 0, 0, .08); }
+.free-rep:first-of-type { border-top: 0; padding-top: 2px; }
+.free-rep-meta { color: var(--muted); font-size: .82rem; margin: 2px 0 6px; }
+.free-rep-none { margin-top: 10px; font-size: .85rem; }
