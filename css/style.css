@@ -593,3 +593,13 @@ input[type=checkbox] { width: 24px; height: 24px; flex-shrink: 0; accent-color: 
   body.printing-cert .shot-box { width: 100%; }
   body.printing-cert .win-cert { background: #fff; }
 }
+
+/* رموز الأبطال في إعدادات ولي الأمر */
+.kid-pin-row { padding: 12px 0; border-top: 1px solid rgba(0, 0, 0, .08); }
+.kid-pin-row:first-of-type { border-top: 0; }
+.kid-pin-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.kid-pin-head span { display: inline-flex; align-items: center; gap: 8px; }
+.kid-pin-row .row { margin-top: 8px; }
+.kid-pin-row .row { align-items: center; }
+.kid-pin-row .row > input { flex: 1; min-width: 0; }
+.kid-pin-row .row > .btn { flex: 0 0 auto; padding: 10px 22px; }

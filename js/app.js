@@ -24,7 +24,7 @@
   let newAvatar = AVATARS[0];
   let newLook = World.CUTE;
   let parentOK = false;   // فُتحت لوحة ولي الأمر بالرمز في هذه الزيارة
-  let kidPinShown = false; // ولي الأمر أظهر رمز البطل المختار
+  let kidPinShown = '';    // البطل الذي أظهر ولي الأمر رمزه
   let parentTab = 'kids';
   let parentKid = null;
   let pinState = null;    // { stage: 'enter'|'new'|'confirm', buf, first }
@@ -601,7 +601,6 @@
       <div class="card"><h2>🎯 كلمات تحتاج تدريباً</h2>
         ${hard.length ? `<div class="chips">${hard.map(w => `<span class="w-chip" dir="${wdir(w)}">${wordHTML(w)}</span>`).join('')}</div>` : '<p class="muted">لا توجد كلمات صعبة حتى الآن 👏</p>'}
       </div>
-      ${kidPinCard(k)}
       <button class="btn red wide" data-act="deleteKid" data-arg="${k.id}">🗑️ حذف ملف ${esc(k.name)}</button>`;
   }
 
@@ -644,7 +643,8 @@
       <h2>🔐 رمز ولي الأمر</h2>
       <button class="btn soft wide" data-act="setPin">${Store.state.pin ? 'تغيير الرمز' : 'إنشاء رمز'}</button>
       ${Store.state.pin ? '<button class="link-btn dark" data-act="clearPin">إزالة الرمز</button>' : ''}
-    </div>`;
+    </div>
+    ${kidPinsCard()}`;
   }
   function bindSettings() {
     app.querySelectorAll('[data-set]').forEach(el => {
@@ -1359,18 +1359,18 @@
       pinState = { stage: 'enter', buf: '' };
       pinModal();
     },
-    leaveParent() { parentOK = false; go(Store.current() ? 'camp' : 'profiles'); },
-    parentTab(t) { parentTab = t; Screens.parent(); },
-    parentKid(id) { parentKid = id; kidPinShown = false; Screens.parent(); },
-    toggleKidPin() { kidPinShown = !kidPinShown; Screens.parent(); },
-    setKidPin() {
-      const k = Store.state.profiles.find(x => x.id === parentKid);
-      const v = ($('kidPinInput').value || '').trim();
+    leaveParent() { parentOK = false; kidPinShown = ''; go(Store.current() ? 'camp' : 'profiles'); },
+    parentTab(t) { parentTab = t; kidPinShown = ''; Screens.parent(); },
+    parentKid(id) { parentKid = id; Screens.parent(); },
+    toggleKidPin(id) { kidPinShown = kidPinShown === id ? '' : id; Screens.parent(); },
+    setKidPin(id) {
+      const k = Store.state.profiles.find(x => x.id === id);
+      const v = ($('kidPin-' + id).value || '').trim();
       if (!k) return;
       if (!/^[0-9]{4}$/.test(v)) { toast('الرمز 4 أرقام'); return; }
       k.pin = v;
       Store.save();
-      kidPinShown = true;
+      kidPinShown = id;
       toast(`🔑 الرمز الجديد لـ${k.name}: ${v}`, 3500);
       Screens.parent();
     },
@@ -1450,15 +1450,22 @@
     const word = (t || '').trim();
     return word ? [{ t: word, h: (h || '').trim() }] : [];
   }
-  // رمز البطل في لوحة ولي الأمر: يراه ويغيّره (والبطل يغيّره بنفسه من «تعديل بطلك»)
-  function kidPinCard(k) {
-    return `<div class="card"><h2>🔑 رمز دخول ${esc(k.name)}</h2>
-        <p class="muted">${k.pin ? `الرمز الحالي: ${ltr(kidPinShown ? k.pin : '••••')}` : 'لم يُختر بعد: سيختاره عند دخوله أول مرة، أو حدّده الآن.'}
-          ${k.pin ? `<button class="link-btn dark" data-act="toggleKidPin">${kidPinShown ? '🙈 إخفاء' : '👁️ إظهار'}</button>` : ''}</p>
-        <div class="row"><input id="kidPinInput" type="tel" inputmode="numeric" maxlength="4" autocomplete="off" dir="ltr" placeholder="رمز جديد من 4 أرقام">
-          <button class="btn soft" data-act="setKidPin">حفظ</button></div>
-        ${Store.state.pin ? '' : '<p class="note">⚠️ لوحة ولي الأمر بلا رمز، فيستطيع الأطفال فتحها ورؤية رموز إخوتهم. أنشئ رمزاً لها من تبويب «الإعدادات».</p>'}
-      </div>`;
+  // رموز الأبطال في إعدادات ولي الأمر: يراها ويغيّرها (والبطل يغيّر رمزه بنفسه من «تعديل بطلك»)
+  function kidPinsCard() {
+    const kids = Store.state.profiles;
+    if (!kids.length) return '';
+    return `<div class="card">
+      <h2>🔑 رموز دخول الأبطال</h2>
+      <p class="muted">يدخل كل بطل ملفه برمزه، وصاحب الجهاز يدخل ملفه مباشرة.</p>
+      ${kids.map(k => `<div class="kid-pin-row">
+        <div class="kid-pin-head"><b>${k.avatar} ${esc(k.name)}</b>
+          <span>${k.pin ? ltr(kidPinShown === k.id ? k.pin : '••••') : '<small class="muted">لم يُختر بعد</small>'}
+          ${k.pin ? `<button class="link-btn dark" data-act="toggleKidPin" data-arg="${k.id}">${kidPinShown === k.id ? '🙈 إخفاء' : '👁️ إظهار'}</button>` : ''}</span></div>
+        <div class="row"><input id="kidPin-${k.id}" type="tel" inputmode="numeric" maxlength="4" autocomplete="off" dir="ltr" placeholder="رمز جديد من 4 أرقام">
+          <button class="btn soft" data-act="setKidPin" data-arg="${k.id}">حفظ</button></div>
+      </div>`).join('')}
+      ${Store.state.pin ? '' : '<p class="note">⚠️ لوحة ولي الأمر بلا رمز، فيستطيع الأطفال فتحها ورؤية رموز إخوتهم. أنشئ رمزاً لها من بطاقة «رمز ولي الأمر» أعلاه.</p>'}
+    </div>`;
   }
   function enterKid(id) { Store.state.current = id; Store.save(); Sound.play('open'); go('camp'); }
   // رمز البطل: الدخول به، أو اختياره أول مرة ثم تأكيده
