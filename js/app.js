@@ -783,7 +783,7 @@
           if (!Array.isArray(raw)) throw new Error('bad');
         } catch (e) {
           if (/\.json$/i.test(file.name)) throw e;
-          raw = text.split(/[\n,،;]+/);
+          raw = splitWords(text);
         }
         const l = Store.addList(name);
         addParsed(l, raw.map(x => (typeof x === 'string' ? { t: x } : x)));
@@ -1392,8 +1392,9 @@
       const input = $('newWord');
       const t = input.value.trim();
       if (!t) { input.focus(); return; }
-      if (l.words.some(w => w.t === t)) { toast('هذه الكلمة موجودة في القائمة'); input.select(); return; }
-      addParsed(l, parseLine(t));
+      const items = splitWords(t);
+      if (items.length && items.every(x => l.words.some(w => w.t === x.t))) { toast('هذه الكلمة موجودة في القائمة'); input.select(); return; }
+      addParsed(l, items);
       input.value = '';
       input.focus();
       Sound.play('coin');
@@ -1407,14 +1408,14 @@
     },
     bulkOpen(id) {
       showModal(`<h2>📥 لصق قائمة كلمات</h2>
-        <p class="muted">كل كلمة في سطر أو مفصولة بفاصلة. يمكنك كتابة المعنى بعد علامة = مثل <span dir="ltr">school = مدرسة</span></p>
+        <p class="muted">كل كلمة في سطر أو مفصولة بأي رمز مثل ، - ـ / \\. يمكنك كتابة المعنى بعد علامة = مثل <span dir="ltr">school = مدرسة</span></p>
         <textarea id="bulkText" rows="7" dir="auto" placeholder="مدرسة&#10;شجرة&#10;school"></textarea>
         <div class="row"><button class="btn pink" data-act="bulkAdd" data-arg="${id}">إضافة</button><button class="btn soft" data-act="modalNo">رجوع</button></div>`);
       $('bulkText').focus();
     },
     bulkAdd(id) {
       const l = Store.list(id);
-      const items = $('bulkText').value.split(/[\n,،;]+/).flatMap(parseLine);
+      const items = splitWords($('bulkText').value);
       const n = addParsed(l, items);
       closeModal();
       refreshList(l);
@@ -1550,6 +1551,10 @@
     restore() { $('backupFile').click(); },
   };
 
+  // يقسم النص إلى كلمات: السطر الجديد وأي رمز بين الكلمات (، - ـ / \ | . ؛ ...) فاصل.
+  // تبقى «=» لكتابة المعنى، والشرطة والفاصلة العليا داخل الكلمة الإنجليزية (don't, well-known).
+  const WORD_SEP = /(?:[\n\r\t\u0640]|[^\p{L}\p{M}\p{N}\s='\u2019-]|(?<![A-Za-z])['\u2019-]|['\u2019-](?![A-Za-z]))+/u;
+  function splitWords(text) { return String(text).split(WORD_SEP).flatMap(parseLine); }
   function parseLine(s) {
     const [t, h] = String(s).split('=');
     const word = (t || '').trim();
