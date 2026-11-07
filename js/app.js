@@ -81,6 +81,13 @@
   });
 
   let toastTimer;
+  // تثبيت اللعبة كتطبيق على الشاشة الرئيسية: الزر يظهر في المتصفح فقط
+  const standalone = () => matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone === true;
+  let installPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
+  window.addEventListener('appinstalled', () => { installPrompt = null; toast('✅ ثُبّت التطبيق، تجده في الشاشة الرئيسية'); });
+  const installBtn = () => (standalone() ? '' : '<button class="link-btn" data-act="installApp">📲 تثبيت التطبيق</button>');
+
   function toast(msg, ms = 2400) {
     const t = $('toast');
     t.textContent = msg;
@@ -160,7 +167,7 @@
         <button class="btn gold wide" data-act="newProfile">➕ ${list.length ? 'بطل جديد' : 'أنشئ بطلك وابدأ'}</button>
         ${Sync.role() === 'device' || Sync.guardian() ? '' : '<button class="btn soft wide" data-act="go" data-arg="join">📱 جهاز طفل أو ولي أمر آخر؟ انضم برمز</button>'}
         <button class="link-btn" data-act="openParent">👨‍👩‍👧 ولي الأمر</button>
-        <button class="link-btn" data-act="appUpdate">🔄 تحديث التطبيق</button>
+        ${installBtn()}<button class="link-btn" data-act="appUpdate">🔄 تحديث التطبيق</button>
       </section>`);
     },
 
@@ -276,7 +283,7 @@
 
         ${owned.length ? `<div class="card"><h2>🎒 عدّة البطل</h2><div class="gear">${owned.map(i => `<span title="${i.name}">${i.emoji}</span>`).join('')}</div></div>` : ''}
         <button class="link-btn" data-act="openParent">👨‍👩‍👧 ولي الأمر والإعدادات</button>
-        <button class="link-btn" data-act="appUpdate">🔄 تحديث التطبيق</button>
+        ${installBtn()}<button class="link-btn" data-act="appUpdate">🔄 تحديث التطبيق</button>
       </section>`);
     },
 
@@ -1642,6 +1649,17 @@
     parentTab(t) { parentTab = t; kidPinShown = ''; Screens.parent(); },
     parentKid(id) { parentKid = id; Screens.parent(); },
     // يجلب آخر نسخة من الإنترنت: يحدّث الـ service worker ويمسح الملفات المحفوظة ثم يعيد التحميل
+    installApp() {
+      if (!installPrompt) {
+        // متصفح لا يدعم نافذة التثبيت (مثل Safari): نشرح الطريقة يدوياً
+        const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent));
+        toast(ios ? 'من زر المشاركة ⬆️ اختر «إضافة إلى الشاشة الرئيسية»' : 'من قائمة المتصفح ⋮ اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية»', 5000);
+        return;
+      }
+      const e = installPrompt;
+      installPrompt = null;
+      e.prompt();
+    },
     async appUpdate() {
       if (!navigator.onLine) { toast('📡 التحديث يحتاج اتصالاً بالإنترنت'); return; }
       toast('⏳ جارٍ جلب آخر تحديث…', 5000);
