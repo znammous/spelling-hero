@@ -618,10 +618,13 @@
       <div class="trail-map tight">${groups.map((g, i) => {
         const locked = groups.length > 1 && i > open;
         const m = Engine.mastery(p, g);
-        return `<button class="region full group-words ${locked ? 'locked' : ''} ${m >= CONFIG.unlockAt ? 'done' : ''}" style="--c:#c2457d" data-act="startListGroup" data-arg="${i}" data-list="${l.id}">
+        const done = m >= CONFIG.unlockAt;
+        // المجموعة التي عليها الدور تُلوَّن ويظهر عليها زر البدء بوضوح
+        return `<button class="region full group-words ${locked ? 'locked' : done ? 'done' : 'now'}" style="--c:#c2457d" data-act="startListGroup" data-arg="${i}" data-list="${l.id}">
           <span class="region-icon">${locked ? '🔒' : m >= CONFIG.unlockAt ? '⭐' : '🎯'}</span>
           <span class="region-info"><b>${groups.length > 1 ? `المجموعة ${i + 1}` : 'تدرّب على كل الكلمات'} <small>${ltr(Math.round(m * 100) + '%')}</small></b>
           <span class="chips">${g.map(w => `<span class="w-chip" dir="${wdir(w)}">${wordHTML(w)}</span>`).join('')}</span>${bar(m)}</span>
+          ${locked ? '' : `<span class="play-pill">${done ? '↻ مجدداً' : '▶ ابدأ'}</span>`}
         </button>`;
       }).join('')}</div>
     </div>

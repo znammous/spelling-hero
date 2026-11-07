@@ -630,3 +630,8 @@ input[type=checkbox] { width: 24px; height: 24px; flex-shrink: 0; accent-color: 
 .group-words .region-info .chips { margin: 6px 0; gap: 5px; }
 .group-words .w-chip { font-size: .95rem; padding: 1px 9px; }
 .group-words .region-info b small { color: var(--muted); font-weight: 700; margin-inline-start: 6px; }
+
+/* المجموعة التي عليها الدور: ملوّنة وعليها زر بدء واضح */
+.group-words.now { background: color-mix(in srgb, var(--primary) 14%, #fff); border: 3px solid var(--primary); box-shadow: 0 6px 0 var(--primary-dark); }
+.play-pill { flex-shrink: 0; align-self: center; background: var(--primary); color: #fff; font-weight: 800; font-size: 1rem; padding: 9px 16px; border-radius: 999px; box-shadow: 0 4px 0 var(--primary-dark); white-space: nowrap; }
+.group-words.done .play-pill { background: var(--gold); color: var(--deep-dark); box-shadow: 0 4px 0 var(--gold-dark); font-size: .9rem; padding: 7px 12px; }
