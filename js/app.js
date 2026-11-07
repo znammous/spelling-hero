@@ -36,6 +36,7 @@
     { name: 'map', icon: '🗺️', label: 'الخطة' },
     { name: 'free', icon: '✍️', label: 'كلماتي' },
     { name: 'shop', icon: '🎒', label: 'المتجر' },
+    { name: 'performance', icon: '📊', label: 'أدائي' },
     { name: 'heroes', icon: '🏆', label: 'الأبطال' },
   ];
   const TAB_SCREENS = new Set(TABS.map(t => t.name));
@@ -390,6 +391,67 @@
       </section>`);
     },
 
+    // أدائي: تقدّم الطفل وحده، بلا مقارنة بإخوته
+    performance() {
+      const p = Store.current();
+      const s = Engine.stats(p);
+      const t = Engine.today(p);
+      const wk = week(p, 0), last = week(p, 1);
+      const races = (p.races || []).slice(-12);
+      const maxRace = Math.max(10, ...races.map(x => x.score));
+      const avg = list => (list.length ? Math.round(list.reduce((n, x) => n + x.score, 0) / list.length) : null);
+      const now = Date.now(), D = 864e5;
+      const raceThis = avg((p.races || []).filter(x => now - x.at < 7 * D));
+      const raceLast = avg((p.races || []).filter(x => now - x.at >= 7 * D && now - x.at < 14 * D));
+      const lines = [];
+      lines.push(wk.days ? `🔥 لعبت <b>${ltr(wk.days)}</b> ${wk.days === 1 ? 'يوماً' : 'أيام'} من آخر 7 أيام` : '🌱 العب قليلاً كل يوم لتبني سلسلة أيامك');
+      if (wk.acc !== null) {
+        lines.push(last.acc !== null && wk.acc > last.acc
+          ? `📈 دقتك هذا الأسبوع ${ltr(wk.acc + '%')}، أفضل من الأسبوع الماضي (${ltr(last.acc + '%')})!`
+          : `🎯 دقتك هذا الأسبوع ${ltr(wk.acc + '%')}${last.acc !== null ? ` (الأسبوع الماضي ${ltr(last.acc + '%')})` : ''}`);
+      }
+      if (raceThis !== null && raceLast !== null) {
+        lines.push(raceThis > raceLast
+          ? `🏃 أسرع من الأسبوع الماضي بـ <b>${ltr(raceThis - raceLast)}</b> كلمات في السباق!`
+          : `🏃 متوسطك في السباق هذا الأسبوع ${ltr(raceThis)} (الأسبوع الماضي ${ltr(raceLast)})`);
+      }
+      const hard = Engine.tricky(p, 12);
+      render(`<section class="screen">
+        ${subHeader('📊 أدائي')}
+        <div class="stats perf-stats">
+          <div><b>🔥 ${ltr(s.streak)}</b><span>أيام متتالية</span></div>
+          <div><b>⭐ ${ltr(s.mastered)}</b><span>كلمة متقنة</span></div>
+          <div><b>🏃 ${ltr(s.best)}</b><span>أفضل سباق</span></div>
+          <div><b>⏱️ ${ltr(Math.round(t.secs / 60))}</b><span>دقيقة اليوم</span></div>
+        </div>
+        <div class="card"><ul class="perf-lines">${lines.map(l => `<li>${l}</li>`).join('')}</ul></div>
+        <div class="card"><h2>🏃 سباقاتي الأخيرة</h2>
+          ${races.length ? `<div class="race-chart">${races.map(x => `<div class="col"><span>${ltr(x.score)}</span><i style="height:${Math.max(4, (x.score / maxRace) * 100)}%"></i></div>`).join('')}</div>
+          <p class="muted center">من الأقدم (يمين) إلى الأحدث (يسار)</p>`
+          : '<p class="muted">العب سباق الحروف لترى نتائجك هنا 🏃</p>'}
+        </div>
+        <div class="card"><h2>🎯 كلمات تحتاج تدريباً</h2>
+          ${hard.length ? `<div class="chips">${hard.map(w => `<span class="w-chip" dir="${wdir(w)}">${wordHTML(w)}</span>`).join('')}</div>
+            <button class="btn gold wide top8" data-act="startTricky">💪 تدرّب عليها الآن</button>`
+          : '<p class="muted">لا توجد كلمات صعبة عليك الآن، أحسنت! 🌟</p>'}
+        </div>
+        <div class="card"><h2>🗺️ إتقاني في الخطة</h2>
+          ${WORLDS.map(w => {
+            const ws = Engine.state(p, w.id);
+            // المناطق المفتوحة فقط، والمقفلة تُذكر بعددها
+            const locked = w.regions.length - ws.unlocked;
+            return `<h3 class="sub-h">${w.icon} ${w.short} <small>${ltr(`${ws.unlocked}/${w.regions.length}`)}</small></h3>
+            ${w.regions.slice(0, ws.unlocked).map(r => {
+              const m = Engine.mastery(p, Engine.regionWords(w.id, r));
+              return `<div class="rep-row"><span>${r.icon} ${r.label}</span>${bar(m)}<b>${ltr(Math.round(m * 100) + '%')}</b></div>`;
+            }).join('')}
+            ${locked > 0 ? `<p class="muted perf-locked">🔒 ${ltr(locked)} ${locked === 1 ? 'منطقة تُفتح' : 'مناطق تُفتح'} عندما تتقن ما قبلها</p>` : ''}`;
+          }).join('')}
+        </div>
+        ${freeReport(p, true)}
+      </section>`);
+    },
+
     heroes() {
       const p = Store.current();
       const rows = Store.state.profiles.map(k => ({ k, s: Engine.stats(k) })).sort((a, b) => b.s.mastered - a.s.mastered);
@@ -404,7 +466,7 @@
             <div class="kid-head"><span class="kname">${k.avatar} ${esc(k.name)}</span>${i === 0 && s.mastered ? '<span class="crown">👑 المتصدّر</span>' : ''}</div>
             <div class="pts"><b>${s.mastered}</b> كلمة متقنة</div>
             ${bar(next ? s.best / next.min : 1)}
-            <div class="goal">${rank.emoji} ${rank.name}${next ? ` · التالية عند ${ltr(next.min)} في السباق` : ''}</div>
+            <div class="kid-goal">${rank.emoji} ${rank.name}${next ? ` · التالية عند ${ltr(next.min)} في السباق` : ''}</div>
             <div class="stats"><div><b>${s.streak}</b><span>أيام متتالية</span></div><div><b>${s.best}</b><span>أفضل سباق</span></div><div><b>${k.coins}</b><span>عملات</span></div></div>
           </div>`;
         }).join('')}</div>
@@ -572,8 +634,20 @@
       <small class="muted">كتبتَ: <span dir="${wdir(word)}">${esc(given)}</span></small>`;
   }
 
+  // أيام اللعب ودقة الإجابات في أسبوع: 0 = آخر 7 أيام، 1 = السبعة التي قبلها
+  function week(p, back) {
+    const key = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    let days = 0, asked = 0, right = 0;
+    for (let i = back * 7; i < back * 7 + 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const x = (p.days || {})[key(d)];
+      if (x && x.asked > 0) { days++; asked += x.asked; right += x.right; }
+    }
+    return { days, acc: asked ? Math.round((right / asked) * 100) : null };
+  }
   // أداء الطفل في قوائم الوضع الحر: القوائم مشتركة بين الأبطال، ولكل طفل تقدّمه في كل قائمة
-  function freeReport(k) {
+  function freeReport(k, self) {
     const lists = Store.state.lists.filter(l => l.words.length);
     if (!lists.length) return '';
     const rows = lists.map(l => {
@@ -589,16 +663,16 @@
     });
     const used = rows.filter(r => r.seen);
     const unused = rows.filter(r => !r.seen);
-    return `<div class="card"><h2>📝 القوائم الحرة</h2>
+    return `<div class="card"><h2>${self ? '✍️ قوائمي' : '📝 القوائم الحرة'}</h2>
       ${used.length ? used.map(r => `<div class="free-rep">
         <div class="rep-row"><span><b>${esc(r.l.name)}</b></span>${bar(r.m)}<b>${ltr(Math.round(r.m * 100) + '%')}</b></div>
-        <p class="free-rep-meta">تدرّب على ${ltr(`${r.seen}/${r.words.length}`)} كلمة
+        <p class="free-rep-meta">${self ? 'تدرّبت' : 'تدرّب'} على ${ltr(`${r.seen}/${r.words.length}`)} كلمة
           ${r.acc !== null ? ` · دقة ${ltr(r.acc + '%')}` : ''}
           ${r.st.bestRace ? ` · أفضل سباق ${ltr(r.st.bestRace)}` : ''}
           ${r.st.examBest !== null && r.st.examBest !== undefined ? ` · أفضل اختبار ${ltr(`${r.st.examBest}/${r.words.length}`)}` : ''}</p>
         ${r.hard.length ? `<div class="chips">${r.hard.map(w => `<span class="w-chip" dir="${wdir(w)}">${wordHTML(w)}</span>`).join('')}</div>` : ''}
-      </div>`).join('') : `<p class="muted">لم يتدرّب ${esc(k.name)} على أي قائمة حرة بعد.</p>`}
-      ${unused.length && used.length ? `<p class="muted free-rep-none">لم يتدرّب بعد على: ${unused.map(r => esc(r.l.name)).join('، ')}</p>` : ''}
+      </div>`).join('') : `<p class="muted">${self ? 'لم تتدرّب على أي قائمة بعد. افتح «كلماتي» وابدأ ✍️' : `لم يتدرّب ${esc(k.name)} على أي قائمة حرة بعد.`}</p>`}
+      ${unused.length && used.length ? `<p class="muted free-rep-none">${self ? 'لم تتدرّب' : 'لم يتدرّب'} بعد على: ${unused.map(r => esc(r.l.name)).join('، ')}</p>` : ''}
     </div>`;
   }
   function parentKids() {
@@ -1090,6 +1164,7 @@
     const full = r.asked > 0 && r.right === r.asked;
     if (full && r.mode !== 'race' && r.mode !== 'review') { p.coins += COINS.perfect; p.perfect = (p.perfect || 0) + 1; }
     if (r.mode === 'race') {
+      p.races = (p.races || []).concat({ at: Date.now(), score: r.right, src: r.src }).slice(-30);
       if (r.right > st.bestRace) {
         if (st.bestRace > 0) { sum.newRecord = true; p.coins += COINS.record; }
         st.bestRace = r.right;

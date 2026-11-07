@@ -1548,7 +1548,7 @@ const Group = (() => {
       const hadKid = applyPendingKid();
       if (hadKid && C.nav.cur === 'profiles') { C.go('camp', null, true); return; }
       // لا نعيد الرسم أثناء الكتابة في نموذج
-      if (['profiles', 'camp', 'free', 'heroes', 'shop', 'map'].includes(C.nav.cur) && !document.querySelector('.group-results')) {
+      if (['profiles', 'camp', 'free', 'heroes', 'shop', 'map', 'performance'].includes(C.nav.cur) && !document.querySelector('.group-results')) {
         const y = window.scrollY;
         C.redraw();
         window.scrollTo(0, y);

@@ -256,7 +256,7 @@ input[type=checkbox] { width: 24px; height: 24px; flex-shrink: 0; accent-color: 
 .crown { font-size: .85rem; font-weight: 800; background: var(--gold); color: var(--deep-dark); border-radius: 99px; padding: 2px 12px; box-shadow: 0 3px 0 var(--gold-dark); animation: nudge 1.8s ease-in-out infinite; white-space: nowrap; }
 .pts { color: var(--muted); }
 .pts b { font-size: 2.7rem; font-weight: 800; line-height: 1.15; color: var(--c); margin-inline-end: 4px; }
-.goal { font-size: .88rem; color: var(--muted); margin-top: 4px; }
+.kid-goal { font-size: .88rem; color: var(--muted); margin-top: 4px; }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
 .stats div { background: var(--card); border-radius: 14px; padding: 6px 4px; text-align: center; }
 .stats b { display: block; font-size: 1.3rem; font-weight: 800; }
@@ -611,3 +611,16 @@ input[type=checkbox] { width: 24px; height: 24px; flex-shrink: 0; accent-color: 
 .free-rep:first-of-type { border-top: 0; padding-top: 2px; }
 .free-rep-meta { color: var(--muted); font-size: .82rem; margin: 2px 0 6px; }
 .free-rep-none { margin-top: 10px; font-size: .85rem; }
+
+/* أدائي */
+.perf-stats { grid-template-columns: repeat(2, 1fr); margin: 0 0 14px; }
+.perf-stats div { background: #fff; padding: 10px 4px; box-shadow: 0 3px 0 rgba(0, 0, 0, .06); }
+.perf-stats b { font-size: 1.45rem; }
+.perf-stats b span { display: inline; font-size: inherit; line-height: inherit; color: var(--deep); }
+.perf-locked { font-size: .85rem; margin: 4px 0 0; }
+.perf-lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.perf-lines li { line-height: 1.6; }
+.race-chart { display: flex; align-items: flex-end; gap: 6px; height: 140px; padding-top: 18px; direction: rtl; }
+.race-chart .col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 3px; min-width: 0; }
+.race-chart .col span { font-size: .78rem; font-weight: 800; color: var(--deep); }
+.race-chart .col i { display: block; width: 100%; max-width: 28px; border-radius: 8px 8px 3px 3px; background: linear-gradient(var(--primary), var(--deep)); }
