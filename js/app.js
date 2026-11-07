@@ -1552,8 +1552,8 @@
   };
 
   // يقسم النص إلى كلمات: السطر الجديد وأي رمز بين الكلمات (، - ـ / \ | . ؛ ...) فاصل.
-  // تبقى «=» لكتابة المعنى، والشرطة والفاصلة العليا داخل الكلمة الإنجليزية (don't, well-known).
-  const WORD_SEP = /(?:[\n\r\t\u0640]|[^\p{L}\p{M}\p{N}\s='\u2019-]|(?<![A-Za-z])['\u2019-]|['\u2019-](?![A-Za-z]))+/u;
+  // تبقى «=» لكتابة المعنى، والفاصلة العليا داخل الكلمة الإنجليزية (don't). الشرطة فاصل دائماً.
+  const WORD_SEP = /(?:[\n\r\t\u0640]|[^\p{L}\p{M}\p{N}\s='\u2019]|(?<![A-Za-z])['\u2019]|['\u2019](?![A-Za-z]))+/u;
   function splitWords(text) { return String(text).split(WORD_SEP).flatMap(parseLine); }
   function parseLine(s) {
     const [t, h] = String(s).split('=');
